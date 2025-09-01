@@ -87,30 +87,35 @@ download:
 build: download
     @echo "Building standard version..."
     cd {{CPP_DIR}}
+    chmod +x tools/linux_build_enhanced.sh
     ./tools/linux_build_enhanced.sh standard
 
 # Build static binary
 build-static: download
     @echo "Building static binary..."
     cd {{CPP_DIR}}
+    chmod +x tools/linux_build_enhanced.sh
     ./tools/linux_build_enhanced.sh static
 
 # Build musl static binary
 build-musl: download
     @echo "Building musl static binary..."
     cd {{CPP_DIR}}
+    chmod +x tools/linux_build_musl.sh tools/linux_build_enhanced.sh
     ./tools/linux_build_enhanced.sh musl
 
 # Build for different architectures
 build-cross ARCH="aarch64": download
     @echo "Building for {{ARCH}}..."
     cd {{CPP_DIR}}
+    chmod +x tools/linux_build_cross.sh tools/linux_build_enhanced.sh
     ./tools/linux_build_enhanced.sh cross {{ARCH}}
 
 # Build all variants
 build-all: download
     @echo "Building all variants..."
     cd {{CPP_DIR}}
+    chmod +x tools/linux_build_*.sh
     ./tools/linux_build_enhanced.sh standard
     ./tools/linux_build_enhanced.sh static
     ./tools/linux_build_enhanced.sh musl
