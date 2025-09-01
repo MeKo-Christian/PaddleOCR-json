@@ -1,4 +1,4 @@
-// Linux 平台的任务处理代码
+// Linux platform task processing code
 
 #if defined(_LINUX) || defined(__linux__)
 
@@ -9,12 +9,12 @@
 #include "include/args.h"
 #include "include/task.h"
 
-// 套接字
+// Socket
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-// 内存管理
+// Memory management
 #include <fstream>
 #include <string>
 

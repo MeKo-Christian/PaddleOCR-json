@@ -1,18 +1,18 @@
-# 👉 demo1.py ：演示OCR基础功能
-#    demo2.py ：演示可视化接口
-#    demo3.py ：演示OCR文段后处理（段落合并）接口
+# 👉 demo1.py: Demonstriert grundlegende OCR-Funktionen
+#    demo2.py: Demonstriert Visualisierungsinterface
+#    demo3.py: Demonstriert OCR-Textsegment-Nachverarbeitung (Absatz-Zusammenführung) Interface
 
 from PPOCR_api import GetOcrApi
 
 import os
 
-# 测试图片路径
+# Testbildpfad
 TestImagePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test.jpg")
 
-# 初始化识别器对象，传入 PaddleOCR-json 引擎路径。
-# 引擎下载地址： https://github.com/hiroi-sora/PaddleOCR-json/releases
-# Windows： 传入 PaddleOCR-json.exe 的路径。
-# Linux： 传入 run.sh 的路径
+# Initialisiere das Erkenner-Objekt, übergebe den PaddleOCR-json Engine-Pfad.
+# Engine-Download-Adresse: https://github.com/hiroi-sora/PaddleOCR-json/releases
+# Windows: Übergebe den Pfad zu PaddleOCR-json.exe.
+# Linux: Übergebe den Pfad zu run.sh
 ocr = GetOcrApi(r"Your Path/PaddleOCR-json.exe")
 
 if ocr.getRunningMode() == "local":
@@ -21,21 +21,21 @@ elif ocr.getRunningMode() == "remote":
     print(f"连接远程OCR引擎成功，ip：{ocr.ip}，port：{ocr.port}")
 print(f"\n测试图片路径：{TestImagePath}")
 
-# 示例1：识别本地图片
+# Beispiel 1: Erkennen lokales Bild
 res = ocr.run(TestImagePath)
 print(f"\n示例1-图片路径识别结果（原始信息）：\n{res}")
 print(f"\n示例1-图片路径识别结果（格式化输出）：")
 ocr.printResult(res)
 
-# 示例2：识别图片字节流
-with open(TestImagePath, "rb") as f:  # 获取图片字节流
-    # 实际使用中，可以联网下载或者截图获取字节流，直接送入OCR，无需保存到本地中转。
+# Beispiel 2: Erkennen Bild-Byte-Stream
+with open(TestImagePath, "rb") as f:  # Hole Bild-Byte-Stream
+    # In der Praxis kann der Byte-Stream durch Netzwerk-Download oder Screenshot erhalten werden, direkt in OCR eingeben, ohne auf lokale Zwischenspeicherung zu speichern.
     imageBytes = f.read()
 res = ocr.runBytes(imageBytes)
 print(f"\n示例2-字节流识别结果：")
 ocr.printResult(res)
 
-# 示例3：识别 PIL Image 对象
+# Beispiel 3: Erkennen PIL Image Objekt
 try:
     from PIL import Image
     from io import BytesIO
@@ -43,19 +43,19 @@ except Exception:
     print("安装Pillow库后方可测试示例3。")
     Image = None
 if Image:
-    # 创建一个PIL Image对象
+    # Erstelle ein PIL Image Objekt
     pilImage = Image.open(TestImagePath)
-    # Image 对象转为 字节流
+    # Image Objekt zu Byte-Stream konvertieren
     buffered = BytesIO()
     pilImage.save(buffered, format="PNG")
     imageBytes = buffered.getvalue()
-    # 送入OCR
+    # In OCR eingeben
     res = ocr.runBytes(imageBytes)
     print(f"\n示例3-PIL Image 识别结果：")
     ocr.printResult(res)
 
-# 以下示例默认禁用
-# 示例4：识别剪贴板图片
+# Folgende Beispiele standardmäßig deaktiviert
+# Beispiel 4: Erkennen Zwischenablage-Bild
 if ocr.isClipboardEnabled():
     res = ocr.runClipboard()
     if res["code"] == 212:

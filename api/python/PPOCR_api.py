@@ -1,5 +1,5 @@
-# 调用 PaddleOCR-json.exe 的 Python Api
-# 项目主页：
+# Python API zum Aufrufen von PaddleOCR-json.exe
+# Projekt-Homepage:
 # https://github.com/hiroi-sora/PaddleOCR-json
 
 import os
@@ -14,10 +14,10 @@ from base64 import b64encode  # base64 编码
 
 class PPOCR_pipe:  # 调用OCR（管道模式）
     def __init__(self, exePath: str, modelsPath: str = None, argument: dict = None):
-        """初始化识别器（管道模式）。\n
-        `exePath`: 识别器`PaddleOCR_json.exe`的路径。\n
-        `modelsPath`: 识别库`models`文件夹的路径。若为None则默认识别库与识别器在同一目录下。\n
-        `argument`: 启动参数，字典`{"键":值}`。参数说明见 https://github.com/hiroi-sora/PaddleOCR-json
+        """Initialisiere den Erkenner (Pipe-Modus).\n
+        `exePath`: Pfad zum Erkenner `PaddleOCR_json.exe`.\n
+        `modelsPath`: Pfad zum Erkennungsbibliothek `models` Ordner. Wenn None, wird angenommen, dass die Bibliothek im selben Verzeichnis wie der Erkenner ist.\n
+        `argument`: Startparameter, Dictionary `{"key":value}`. Parameterbeschreibung siehe https://github.com/hiroi-sora/PaddleOCR-json
         """
         # 私有成员变量
         self.__ENABLE_CLIPBOARD = False

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// 版本信息
+// Version information
 #define PROJECT_VER "v1.4.1 dev.1"
 #define PROJECT_NAME "PaddleOCR-json " PROJECT_VER
 
@@ -97,18 +97,18 @@ void structure(std::vector<cv::String> &cv_all_img_names)
 
 int main(int argc, char **argv)
 {
-    std::cout << PROJECT_NAME << std::endl; // 版本提示
-    // 设置gflags并读取命令行
+    std::cout << PROJECT_NAME << std::endl; // Version prompt
+    // Set gflags and read command line
     google::SetUsageMessage("PaddleOCR-json [FLAG1=ARG1] [FLAG2=ARG2]");
     google::SetVersionString(PROJECT_VER);
     google::ParseCommandLineFlags(&argc, &argv, true);
-    // 读取配置文件
+    // Read config file
     std::string configMsg = read_config();
     if (!configMsg.empty())
     {
         std::cerr << configMsg << std::endl;
     }
-    // 检查参数合法性
+    // Check parameter validity
     std::string checkMsg = check_flags();
     if (!checkMsg.empty())
     {
@@ -116,13 +116,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // 启动任务
+    // Start task
     Task task = Task();
     if (FLAGS_type == "ocr")
-    { // OCR图片模式
+    { // OCR image mode
         return task.ocr();
     }
-    // TODO: 图表识别模式
+    // TODO: Chart recognition mode
     else if (FLAGS_type == "structure")
     {
         std::cerr << "[ERROR] structure not support. " << std::endl;

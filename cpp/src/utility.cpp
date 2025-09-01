@@ -15,12 +15,12 @@
 #ifdef _WIN32
 #include <include/dirent.h>
 #include <direct.h>
-// 不同平台的路径分隔符
+// Path separator for different platforms
 #define SEP '\\'
 #else
 #include <dirent.h>
 #include <sys/stat.h>
-// 不同平台的路径分隔符
+// Path separator for different platforms
 #define SEP '/'
 #endif
 
@@ -33,7 +33,7 @@
 namespace PaddleOCR
 {
 
-    // 读字典
+    // Read dictionary
     std::vector<std::string> Utility::ReadDict(const std::string &path)
     {
         std::ifstream in(path);
@@ -55,7 +55,7 @@ namespace PaddleOCR
         return m_vec;
     }
 
-    // 文本框可视化
+    // Text box visualization
     void Utility::VisualizeBboxes(const cv::Mat &srcimg,
                                   const std::vector<OCRPredictResult> &ocr_result,
                                   const std::string &save_path)
@@ -119,7 +119,7 @@ namespace PaddleOCR
         std::cout << "The table visualized image saved in " + save_path << std::endl;
     }
 
-    // 列出目录下所有文件
+    // List all files in directory
     void Utility::GetAllFiles(const char *dir_name,
                               std::vector<std::string> &all_inputs)
     {
@@ -159,7 +159,7 @@ namespace PaddleOCR
         }
     }
 
-    // 获取旋转裁剪图像
+    // Get rotated cropped image
     cv::Mat Utility::GetRotateCropImage(const cv::Mat &srcimage,
                                         std::vector<std::vector<int>> box)
     {
@@ -220,7 +220,7 @@ namespace PaddleOCR
         }
     }
 
-    // 排序
+    // Sort
     std::vector<int> Utility::argsort(const std::vector<float> &array)
     {
         const int array_len(array.size());
@@ -236,7 +236,7 @@ namespace PaddleOCR
         return array_index;
     }
 
-    // trim系列函数，删除前面、后面、两头的：空格、\n、\r、\t
+    // Trim functions, remove leading, trailing, or both: spaces, \n, \r, \t
     inline void Utility::ltrim(std::string &str)
     {
         std::size_t found = str.find_first_not_of(" \n\r\t");
@@ -289,7 +289,7 @@ namespace PaddleOCR
         return str;
     }
 
-    // 提取文件名
+    // Extract filename
     std::string Utility::basename(const std::string &filename)
     {
         if (filename.empty())
@@ -332,32 +332,32 @@ namespace PaddleOCR
         return filename.substr(index + 1, len - index);
     }
 
-    // 路径拼接
+    // Path join
     std::string Utility::pathjoin(const std::string& parent, const std::string& child)
     {
-        // 去掉头尾的空格
+        // Remove leading/trailing spaces
         std::string pstr = trim_copy(parent);
         std::string cstr = trim_copy(child);
         
-        // 把 child 头部的路径分隔符去掉
+        // Remove leading path separator from child
         if (cstr.front() == '/' || cstr.front() == '\\')
             cstr.assign(cstr.begin()+1, cstr.end());
         
-        // 处理特殊情况
+        // Handle special cases
         if (pstr == "/" || pstr == "\\")
             return (SEP + cstr);
         else if (pstr.size() <= 0)
             return cstr;
         
-        // 把 parent 尾部的路径分隔符去掉
+        // Remove trailing path separator from parent
         if (pstr.back() == '/' || pstr.back() == '\\')
             pstr.assign(pstr.begin(), pstr.end()-1);
         
-        // 最后拼接
+        // Finally join
         return (pstr + SEP + cstr);
     }
 
-    // 检查文件存在（string）
+    // Check file exists (string)
     bool Utility::PathExists(const std::string &path)
     {
 #ifdef _WIN32

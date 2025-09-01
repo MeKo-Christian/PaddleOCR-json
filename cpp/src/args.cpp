@@ -18,71 +18,71 @@
 
 #include <gflags/gflags.h>
 
-// 工作模式
-DEFINE_string(image_path, "", "Set image_path to run a single task.");                                                          // 若填写了图片路径，则执行一次OCR。
-DEFINE_int32(port, -1, "Set to 0 enable random port, set to 1~65535 enables specified port.");                                  // 填写0随机端口号，填1^65535指定端口号。默认则启用匿名管道模式。
-DEFINE_string(addr, "loopback", "Socket server addr, the value can be 'loopback', 'localhost', 'any', or other IPv4 address."); // 套接字服务器的地址模式，本地环回/任何可用。
+// Operating mode
+DEFINE_string(image_path, "", "Set image_path to run a single task.");                                                          // If an image path is provided, perform a single OCR task.
+DEFINE_int32(port, -1, "Set to 0 enable random port, set to 1~65535 enables specified port.");                                  // Set to 0 for random port, 1~65535 for specified port. Default enables anonymous pipe mode.
+DEFINE_string(addr, "loopback", "Socket server addr, the value can be 'loopback', 'localhost', 'any', or other IPv4 address."); // Socket server address mode, loopback or any available.
 
-// common args 常用参数
-DEFINE_bool(use_gpu, false, "Infering with GPU or CPU.");                                              // true时启用GPU（需要推理库支持）
-DEFINE_bool(use_tensorrt, false, "Whether use tensorrt.");                                             // true时启用tensorrt
-DEFINE_int32(gpu_id, 0, "Device id of GPU to execute.");                                               // GPU id，使用GPU时有效
-DEFINE_int32(gpu_mem, 4000, "GPU memory when infering with GPU.");                                     // 申请的GPU内存
-DEFINE_int32(cpu_threads, 10, "Num of threads with CPU.");                                             // CPU线程
-DEFINE_int32(cpu_mem, 2000, "CPU memory limit in MB. Cleanup if exceeded. -1 means no limit.");        // CPU内存占用上限，单位MB。-1表示不限制
-DEFINE_bool(enable_mkldnn, true, "Whether use mkldnn with CPU.");                                      // true时启用mkldnn
-DEFINE_string(precision, "fp32", "Precision be one of fp32/fp16/int8");                                // 预测的精度，支持fp32, fp16, int8 3种输入
-DEFINE_bool(benchmark, false, "Whether use benchmark.");                                               // true时开启benchmark，对预测速度、显存占用等进行统计
-DEFINE_string(output, "./output/", "Save benchmark log path.");                                        // 可视化结果保存的路径 TODO
-DEFINE_string(type, "ocr", "Perform ocr or structure, the value is selected in ['ocr','structure']."); // 任务类型（暂不可用）
-DEFINE_string(config_path, "", "Path of config file.");                                                // 配置文件路径
-DEFINE_string(models_path, "", "Path of models folder.");                                              // 预测库路径
-DEFINE_bool(ensure_ascii, true, "Enable JSON ascii escape.");                                          // true时json开启ascii转义
+// common args
+DEFINE_bool(use_gpu, false, "Infering with GPU or CPU.");                                              // Enable GPU if true (requires inference library support)
+DEFINE_bool(use_tensorrt, false, "Whether use tensorrt.");                                             // Enable tensorrt if true
+DEFINE_int32(gpu_id, 0, "Device id of GPU to execute.");                                               // GPU id, valid when using GPU
+DEFINE_int32(gpu_mem, 4000, "GPU memory when infering with GPU.");                                     // Requested GPU memory
+DEFINE_int32(cpu_threads, 10, "Num of threads with CPU.");                                             // CPU threads
+DEFINE_int32(cpu_mem, 2000, "CPU memory limit in MB. Cleanup if exceeded. -1 means no limit.");        // CPU memory usage limit in MB. -1 means no limit
+DEFINE_bool(enable_mkldnn, true, "Whether use mkldnn with CPU.");                                      // Enable mkldnn if true
+DEFINE_string(precision, "fp32", "Precision be one of fp32/fp16/int8");                                // Prediction precision, supports fp32, fp16, int8
+DEFINE_bool(benchmark, false, "Whether use benchmark.");                                               // Enable benchmark if true, statistics on prediction speed, memory usage, etc.
+DEFINE_string(output, "./output/", "Save benchmark log path.");                                        // Path to save visualization results TODO
+DEFINE_string(type, "ocr", "Perform ocr or structure, the value is selected in ['ocr','structure']."); // Task type (not available yet)
+DEFINE_string(config_path, "", "Path of config file.");                                                // Config file path
+DEFINE_string(models_path, "", "Path of models folder.");                                              // Inference library path
+DEFINE_bool(ensure_ascii, true, "Enable JSON ascii escape.");                                          // Enable JSON ascii escape if true
 
-// detection related DET检测相关
-DEFINE_string(det_model_dir, "models/ch_PP-OCRv4_det_infer", "Path of det inference model.");                     // det模型库路径
-DEFINE_string(limit_type, "max", "limit_type of input image, the value is selected in ['max','min'].");           // 对图片尺寸限制采用长边还是短边
-DEFINE_int32(limit_side_len, 960, "limit_side_len of input image.");                                              // 对长/短边限制值
-DEFINE_double(det_db_thresh, 0.3, "Threshold of det_db_thresh.");                                                 // 用于过滤DB预测的二值化图像，设置为0.-0.3对结果影响不明显
-DEFINE_double(det_db_box_thresh, 0.6, "Threshold of det_db_box_thresh.");                                         // DB后处理过滤box的阈值，如果检测存在漏框情况，可酌情减小
-DEFINE_double(det_db_unclip_ratio, 1.5, "Threshold of det_db_unclip_ratio.");                                     // 表示文本框的紧致程度，越小则文本框更靠近文本
-DEFINE_bool(use_dilation, false, "Whether use the dilation on output map.");                                      // true时对分割结果进行膨胀以获取更优检测效果
-DEFINE_string(det_db_score_mode, "slow", "Whether use polygon score, the value is selected in ['slow','fast']."); // slow:使用多边形框计算bbox score，fast:使用矩形框计算。矩形框计算速度更快，多边形框对弯曲文本区域计算更准确
-DEFINE_bool(visualize, false, "Whether show the detection results.");                                             // true时启用结果进行可视化，预测结果保存在output字段指定的文件夹下和输入图像同名的图像上。
+// detection related DET
+DEFINE_string(det_model_dir, "models/ch_PP-OCRv4_det_infer", "Path of det inference model.");                     // Detection model library path
+DEFINE_string(limit_type, "max", "limit_type of input image, the value is selected in ['max','min'].");           // Limit image size by long side or short side
+DEFINE_int32(limit_side_len, 960, "limit_side_len of input image.");                                              // Limit value for long/short side
+DEFINE_double(det_db_thresh, 0.3, "Threshold of det_db_thresh.");                                                 // Threshold for filtering DB prediction binarized image, 0.-0.3 has little impact on results
+DEFINE_double(det_db_box_thresh, 0.6, "Threshold of det_db_box_thresh.");                                         // DB post-processing box filtering threshold, reduce if missing boxes
+DEFINE_double(det_db_unclip_ratio, 1.5, "Threshold of det_db_unclip_ratio.");                                     // Text box tightness, smaller value makes box closer to text
+DEFINE_bool(use_dilation, false, "Whether use the dilation on output map.");                                      // Dilate segmentation results for better detection if true
+DEFINE_string(det_db_score_mode, "slow", "Whether use polygon score, the value is selected in ['slow','fast']."); // slow: use polygon to calculate bbox score, fast: use rectangle. Rectangle is faster, polygon more accurate for curved text
+DEFINE_bool(visualize, false, "Whether show the detection results.");                                             // Visualize results if true, saved in output folder with same name as input image.
 
-// classification related CLS方向分类相关
-DEFINE_bool(use_angle_cls, false, "Whether use use_angle_cls."); // true时启用方向分类器
+// classification related CLS
+DEFINE_bool(use_angle_cls, false, "Whether use use_angle_cls."); // Enable direction classifier if true
 DEFINE_string(cls_model_dir, "models/ch_ppocr_mobile_v2.0_cls_infer", "Path of cls inference model.");
-DEFINE_double(cls_thresh, 0.9, "Threshold of cls_thresh."); // 方向分类器的得分阈值
-DEFINE_int32(cls_batch_num, 1, "cls_batch_num.");           // 方向分类器batchsize
+DEFINE_double(cls_thresh, 0.9, "Threshold of cls_thresh."); // Direction classifier score threshold
+DEFINE_int32(cls_batch_num, 1, "cls_batch_num.");           // Direction classifier batch size
 
-// recognition related REC文本识别相关
+// recognition related REC
 DEFINE_string(rec_model_dir, "models/ch_PP-OCRv4_rec_infer", "Path of rec inference model.");
-DEFINE_int32(rec_batch_num, 6, "rec_batch_num.");                                    // 文字识别模型batchsize
-DEFINE_string(rec_char_dict_path, "models/dict_chinese.txt", "Path of dictionary."); // 字典路径
-DEFINE_int32(rec_img_h, 48, "rec image height");                                     // 文字识别模型输入图像高度。V3模型是48，V2应该改为32
-DEFINE_int32(rec_img_w, 320, "rec image width");                                     // 文字识别模型输入图像宽度。V3和V2一致
+DEFINE_int32(rec_batch_num, 6, "rec_batch_num.");                                    // Text recognition model batch size
+DEFINE_string(rec_char_dict_path, "models/dict_chinese.txt", "Path of dictionary."); // Dictionary path
+DEFINE_int32(rec_img_h, 48, "rec image height");                                     // Text recognition model input image height. V3 is 48, V2 should be 32
+DEFINE_int32(rec_img_w, 320, "rec image width");                                     // Text recognition model input image width. Same for V3 and V2
 
-// layout model related 版面分析相关
+// layout model related
 DEFINE_string(layout_model_dir, "", "Path of table layout inference model.");
-DEFINE_string(layout_dict_path, "../../ppocr/utils/dict/layout_dict/layout_publaynet_dict.txt", "Path of dictionary."); // 版面字典路径
-DEFINE_double(layout_score_threshold, 0.5, "Threshold of score.");                                                      // 检测框的分数阈值
-DEFINE_double(layout_nms_threshold, 0.5, "Threshold of nms.");                                                          // nms的阈值
-// structure model related 表格结构相关
+DEFINE_string(layout_dict_path, "../../ppocr/utils/dict/layout_dict/layout_publaynet_dict.txt", "Path of dictionary."); // Layout dictionary path
+DEFINE_double(layout_score_threshold, 0.5, "Threshold of score.");                                                      // Detection box score threshold
+DEFINE_double(layout_nms_threshold, 0.5, "Threshold of nms.");                                                          // NMS threshold
+// structure model related
 DEFINE_string(table_model_dir, "", "Path of table struture inference model.");
-DEFINE_int32(table_max_len, 488, "max len size of input image."); // 表格识别模型输入图像长边大小
+DEFINE_int32(table_max_len, 488, "max len size of input image."); // Table recognition model input image long side size
 DEFINE_int32(table_batch_num, 1, "table_batch_num.");
-DEFINE_bool(merge_no_span_structure, true, "Whether merge <td> and </td> to <td></td>");                          // true时将<td>和</td>合并到<td></td>
-DEFINE_string(table_char_dict_path, "../../ppocr/utils/dict/table_structure_dict_ch.txt", "Path of dictionary."); // 表格字典路径
+DEFINE_bool(merge_no_span_structure, true, "Whether merge <td> and </td> to <td></td>");                          // Merge <td> and </td> to <td></td> if true
+DEFINE_string(table_char_dict_path, "../../ppocr/utils/dict/table_structure_dict_ch.txt", "Path of dictionary."); // Table dictionary path
 
-// ocr forward related 前处理相关
+// ocr forward related
 DEFINE_bool(det, true, "Whether use det in forward.");
 DEFINE_bool(rec, true, "Whether use rec in forward.");
 DEFINE_bool(cls, false, "Whether use cls in forward.");
 DEFINE_bool(table, false, "Whether use table structure in forward.");
 DEFINE_bool(layout, false, "Whether use layout analysis in forward.");
 
-// 检查一个路径path是否存在，将信息写入msg
+// Check if a path exists, write info to msg
 void check_path(const std::string &path, const std::string &name, std::string &msg)
 {
     if (path.empty())
@@ -95,7 +95,7 @@ void check_path(const std::string &path, const std::string &name, std::string &m
     }
 }
 
-// 为 value 前置拼接预测库路径
+// Prepend models path to value
 void prepend_models(const std::string &models_path_base, std::string &value)
 {
     if (PaddleOCR::Utility::str_starts_with(value, "models"))
@@ -105,17 +105,17 @@ void prepend_models(const std::string &models_path_base, std::string &value)
     }
 }
 
-// 从配置文件中读取配置，返回日志字符串。
+// Read config from file, return log string.
 std::string read_config()
 {
-    // 设置默认预测库路径
+    // Set default models path
     std::string models_path_base = "models";
-    // 如果输入正常预测库路径参数
+    // If valid models path parameter is provided
     if (!FLAGS_models_path.empty() && PaddleOCR::Utility::PathExists(FLAGS_models_path))
     {
-        // 则更新预测库路径
+        // Update models path
         models_path_base = FLAGS_models_path;
-        // 之后我们会用这个预测库路径来更新所有其他参数的路径
+        // Then use this models path to update all other parameter paths
     }
 
     if (!PaddleOCR::Utility::PathExists(FLAGS_config_path))
@@ -133,20 +133,20 @@ std::string read_config()
     while (getline(infile, line))
     {
         int length = line.length();
-        if (length < 3 || line[0] == '#') // 跳过空行和注释
+        if (length < 3 || line[0] == '#') // Skip empty lines and comments
             continue;
-        int split = 0; // 键值对的分割线
+        int split = 0; // Key-value pair separator
         for (; split < length; split++)
         {
             if (line[split] == ' ' || line[split] == '=')
                 break;
         }
-        if (split >= length - 1 || split == 0) // 跳过长度不足的键值对
+        if (split >= length - 1 || split == 0) // Skip invalid key-value pairs
             continue;
         std::string key = line.substr(0, split);
         std::string value = line.substr(split + 1);
         prepend_models(models_path_base, value);
-        // 设置配置，优先级低于命令行传入参数。
+        // Set config, lower priority than command line args.
         std::string res = google::SetCommandLineOptionWithMode(key.c_str(), value.c_str(), google::SET_FLAG_IF_DEFAULT);
         if (!res.empty())
         {
@@ -162,42 +162,42 @@ std::string read_config()
     return msg;
 }
 
-// 检测参数合法性。成功返回空字符串，失败返回报错信息字符串。
+// Check parameter validity. Return empty string on success, error message on failure.
 std::string check_flags()
 {
-    // 设置默认预测库路径
+    // Set default models path
     std::string models_path_base = "models";
-    // 如果输入正常预测库路径参数
+    // If valid models path parameter is provided
     if (!FLAGS_models_path.empty() && PaddleOCR::Utility::PathExists(FLAGS_models_path))
     {
-        // 则更新预测库路径
+        // Update models path
         models_path_base = FLAGS_models_path;
-        // 之后我们会用这个预测库路径来更新所有其他参数的路径
+        // Then use this models path to update all other parameter paths
     }
 
     std::string msg = "";
     if (FLAGS_det)
-    { // 检查det
+    { // Check det
         prepend_models(models_path_base, FLAGS_det_model_dir);
         check_path(FLAGS_det_model_dir, "det_model_dir", msg);
     }
     if (FLAGS_rec)
-    { // 检查rec
+    { // Check rec
         prepend_models(models_path_base, FLAGS_rec_model_dir);
         check_path(FLAGS_rec_model_dir, "rec_model_dir", msg);
     }
     if (FLAGS_cls && FLAGS_use_angle_cls)
-    { // 检查cls
+    { // Check cls
         prepend_models(models_path_base, FLAGS_cls_model_dir);
         check_path(FLAGS_cls_model_dir, "cls_model_dir", msg);
     }
     if (!FLAGS_rec_char_dict_path.empty())
-    { // 检查 rec_char_dict_path
+    { // Check rec_char_dict_path
         prepend_models(models_path_base, FLAGS_rec_char_dict_path);
         check_path(FLAGS_rec_char_dict_path, "rec_char_dict_path", msg);
     }
     if (FLAGS_table)
-    { // 检查table
+    { // Check table
         prepend_models(models_path_base, FLAGS_table_model_dir);
         check_path(FLAGS_table_model_dir, "table_model_dir", msg);
         if (!FLAGS_det)
@@ -206,15 +206,15 @@ std::string check_flags()
             check_path(FLAGS_rec_model_dir, "rec_model_dir", msg);
     }
     if (FLAGS_layout)
-    { // 布局
+    { // Layout
         prepend_models(models_path_base, FLAGS_layout_model_dir);
         check_path(FLAGS_layout_model_dir, "layout_model_dir", msg);
     }
     if (!FLAGS_config_path.empty())
-    { // 配置文件目录非空时检查存在
+    { // Check config path exists if not empty
         check_path(FLAGS_config_path, "config_path", msg);
     }
-    // 检查枚举值
+    // Check enum values
     if (FLAGS_precision != "fp32" && FLAGS_precision != "fp16" && FLAGS_precision != "int8")
     {
         msg += "precison should be 'fp32'(default), 'fp16' or 'int8', not " + FLAGS_precision + ". ";

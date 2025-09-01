@@ -24,7 +24,7 @@ namespace PaddleOCR
     {
         if (FLAGS_det)
         {
-            // 使用智能指针，创建一个新的 DBDetector 对象，并将其管理权转移给 detector_
+            // Use smart pointer, create a new DBDetector object and transfer ownership to detector_
             this->detector_.reset(new DBDetector(
                 FLAGS_det_model_dir, FLAGS_use_gpu, FLAGS_gpu_id, FLAGS_gpu_mem,
                 FLAGS_cpu_threads, FLAGS_enable_mkldnn, FLAGS_limit_type,
@@ -50,13 +50,13 @@ namespace PaddleOCR
         }
     }
 
-    std::vector<std::vector<OCRPredictResult>> // 对一批Mat列表进行OCR
+    std::vector<std::vector<OCRPredictResult>> // OCR a batch of Mat images
     PPOCR::ocr(std::vector<cv::Mat> img_list, bool det, bool rec, bool cls)
     {
         std::vector<std::vector<OCRPredictResult>> ocr_results;
 
         if (!det)
-        { // 不需要det的流程
+        { // Process without det
             std::vector<OCRPredictResult> ocr_result;
             ocr_result.resize(img_list.size());
             if (cls && this->classifier_)
@@ -83,7 +83,7 @@ namespace PaddleOCR
             }
         }
         else
-        { // 正常的det+cls+rec流程
+        { // Normal det+cls+rec process
             for (int i = 0; i < img_list.size(); ++i)
             {
                 std::vector<OCRPredictResult> ocr_result =
@@ -94,7 +94,7 @@ namespace PaddleOCR
         return ocr_results;
     }
 
-    // 对单个Mat进行OCR
+    // OCR a single Mat image
     std::vector<OCRPredictResult> PPOCR::ocr(cv::Mat img, bool det, bool rec,
                                              bool cls)
     {
@@ -104,8 +104,8 @@ namespace PaddleOCR
         // det
         if (det)
         {
-            this->det(img, ocr_result); // 取det结果
-            // 按det结果，裁切图片
+            this->det(img, ocr_result); // Get det result
+            // Crop image according to det result
             for (int j = 0; j < ocr_result.size(); j++)
             {
                 cv::Mat crop_img;
@@ -115,7 +115,7 @@ namespace PaddleOCR
         }
         else
         {
-            // 创建一个box，大小与整张图片相同
+            // Create a box the size of the whole image
             std::vector<std::vector<int>> box = {{0, 0}, {img.cols - 1, 0}, {img.cols - 1, img.rows - 1}, {0, img.rows - 1}};
             OCRPredictResult res;
             res.box = box;
