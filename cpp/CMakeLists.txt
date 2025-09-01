@@ -33,6 +33,12 @@ option(WITH_GPU          "Use GPU or CPU, default use CPU."                     
 option(WITH_STATIC_LIB   "Compile into static library or shared library, default compile into static library."   ON)
 option(WITH_TENSORRT     "Use TensorRT, default off."                                         OFF)
 
+# Add cross-compilation and static build options
+option(BUILD_STATIC_BINARY "Build fully static binary with musl" OFF)
+option(ENABLE_C_API "Build C API library" ON)
+option(ENABLE_CROSS_COMPILE "Enable cross-compilation support" OFF)
+set(CROSS_COMPILE_PREFIX "" CACHE STRING "Cross-compilation prefix (e.g., aarch64-linux-gnu-)")
+
 if (UNIX AND NOT APPLE) # Linux
     # Cannot compile when using `WITH_STATIC_LIB=ON` in Linux environment
     # https://github.com/PaddlePaddle/PaddleOCR/issues/10602
@@ -343,6 +349,28 @@ include_directories(${FETCHCONTENT_BASE_DIR}/extern_autolog-src)
 AUX_SOURCE_DIRECTORY(./src SRCS)
 add_executable(${DEMO_NAME} ${SRCS})
 target_link_libraries(${DEMO_NAME} ${DEPS})
+
+
+# C API Library (if enabled)
+if(ENABLE_C_API)
+    # Create C API wrapper source
+    set(C_API_SOURCES
+        src/paddleocr_c_api.cpp
+    )
+
+    add_library(paddleocr_c SHARED ${C_API_SOURCES})
+    target_link_libraries(paddleocr_c ${DEPS})
+    target_include_directories(paddleocr_c PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+    # Install C API library and headers
+    install(TARGETS paddleocr_c
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+    install(FILES include/paddleocr_c_api.h
+        DESTINATION include
+    )
+endif()
 
 
 # Set up shared libraries to install
