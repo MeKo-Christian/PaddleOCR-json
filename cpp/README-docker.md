@@ -1,40 +1,44 @@
-# PaddleOCR-json V1.4 Docker 部署指南
+# PaddleOCR-json V1.4 Docker Deployment Guide
 
-你可以将本项目部署到Docker容器里，然后通过API或套接字来连接使用。
+You can deploy this project to a Docker container, then connect and use it through API or socket.
 
-部署步骤：
+Deployment steps:
 
-1. [安装Docker](https://yeasy.gitbook.io/docker_practice/install)
-2. clone 本仓库，**然后在 `cpp` 文件夹下打开一个终端（或PowerShell）**。
-3. 接着我们使用Docker来构建镜像
+1. [Install Docker](https://yeasy.gitbook.io/docker_practice/install)
+2. Clone this repository, **then open a terminal (or PowerShell) in the `cpp` folder**.
+3. Next, we use Docker to build the image
 
 ```sh
 docker build -t paddleocr-json .
 ```
 
 > [!NOTE]
-> 镜像构建默认会开启远程关停服务器功能，并且禁用从路径读取图片的功能。从剪贴板读取图片的功能默认禁用，而且它在Linux下也不存在。
+> The image build will by default enable the remote shutdown server feature and disable the function to read images from paths. The clipboard reading function is disabled by default and doesn't exist on Linux.
 
 > [!TIP]
-> 你可以使用docker `--build-arg` 参数来开/关镜像的一些功能。
-> * `ENABLE_REMOTE_EXIT`: 控制是否启用远程关停引擎进程命令，[详情请看这里](README.md#cmake构建参数)。默认开启。
-> * `ENABLE_JSON_IMAGE_PATH`: 控制是否启用json命令image_path，[详情请看这里](README.md#cmake构建参数)。默认关闭。
-> 
-> 比如下面这条修改过的命令。它会禁用远程关停服务器与image_path json命令，这样一来这个镜像就变成了一个纯服务器镜像。用户无法轻易的关停服务器或令服务器读取容器内的文件。
+> You can use docker `--build-arg` parameters to enable/disable some features of the image.
+>
+> * `ENABLE_REMOTE_EXIT`: Controls whether to enable the remote shutdown engine process command, [see details here](README.md#cmake-build-parameters). Enabled by default.
+> * `ENABLE_JSON_IMAGE_PATH`: Controls whether to enable the json command image_path, [see details here](README.md#cmake-build-parameters). Disabled by default.
+>
+> For example, the modified command below. It will disable remote shutdown server and image_path json command, turning this image into a pure server image. Users cannot easily shutdown the server or make the server read files inside the container.
+>
 > ```sh
 > docker build -t paddleocr-json \
 >     --build-arg "ENABLE_REMOTE_EXIT=OFF" \
 >     --build-arg "ENABLE_JSON_IMAGE_PATH=OFF" \
 >     .
 > ```
-> * 最后那个 `.` 必须放在整段命令的末尾，它指定了当前文件夹为docker镜像构建的基础文件夹。
-> [了解更多关于 `--build-arg` 的信息](https://yeasy.gitbook.io/docker_practice/image/dockerfile/arg)
+>
+> * The last `.` must be placed at the end of the entire command, it specifies the current folder as the base folder for docker image building.
+> [Learn more about `--build-arg`](https://yeasy.gitbook.io/docker_practice/image/dockerfile/arg)
 
 > [!NOTE]
-> 可能出现的错误：
-> * 如果在镜像构建的过程中出现了类似下面这样的错误。这大概率是网络问题，建议更换docker镜像源或者更换dns。
+> Possible errors:
 >
-> ```
+> * If errors like the following appear during image building. This is most likely a network issue, it is recommended to change the docker mirror source or change DNS.
+>
+> ```text
 > Ign:516 http://deb.debian.org/debian stable/main amd64 va-driver-all amd64 2.17.0-1
 > Ign:517 http://deb.debian.org/debian stable/main amd64 vdpau-driver-all amd64 1.5-2
 > Ign:518 http://deb.debian.org/debian stable/main amd64 xauth amd64 1:1.1.2-1
@@ -49,7 +53,7 @@ docker build -t paddleocr-json .
 > Err:405 http://deb.debian.org/debian stable/main amd64 libtbb12 amd64 2021.8.0-2
 > ```
 
-4. 接着就可以部署了
+1. Next, you can deploy
 
 ```sh
 docker run -d \
@@ -58,64 +62,65 @@ docker run -d \
    paddleocr-json
 ```
 
-* 这里我们使用参数 `-d` 来以后台模式运行容器。
-* 使用参数 `--name` 来命名Docker容器。
-* 使用参数 `-p` 来暴露容器端口 `3746` 到本地端口 `3746`。容器在运行时会默认将套接字服务器开在容器端口 `3746` 上。
-* 最后使用我们刚刚构建的镜像 `paddleocr-json` 来创建容器。
+* Here we use the parameter `-d` to run the container in background mode.
+* Use the parameter `--name` to name the Docker container.
+* Use the parameter `-p` to expose the container port `3746` to the local port `3746`. The container will by default open the socket server on container port `3746` when running.
+* Finally, use the image `paddleocr-json` we just built to create the container.
 
 > [!TIP]
-> * 你可以在上面这条docker命令的末尾加上各种PaddleOCR-json参数来修改服务器。更多配置参数请参考[简单试用](../README.md#简单试用)和[常用配置参数说明](../README.md#常用配置参数说明)
-> * 并且，PaddleOCR-json已经被安装到了容器系统里，你可以在容器里直接用 `PaddleOCR-json` 来运行它。当然，你需要模型库。
-> * 容器自带一套[模型库](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/models%2Fv1.3)，存放在 `/app/models` 路径下。如果你希望使用自己的模型库，你可以[使用Docker挂载一个数据卷到容器里](https://yeasy.gitbook.io/docker_practice/data_management/volume#qi-dong-yi-ge-gua-zai-shu-ju-juan-de-rong-qi)，然后使用参数 `-models_path` 来指定新的模型库路径。
+>
+> * You can add various PaddleOCR-json parameters at the end of the docker command above to modify the server. For more configuration parameters, please refer to [Simple Trial](../README.md#simple-trial) and [Common Configuration Parameters](../README.md#common-configuration-parameters-explanation)
+> * Also, PaddleOCR-json has been installed in the container system, you can directly use `PaddleOCR-json` to run it in the container. Of course, you need the model library.
+> * The container comes with a set of [model library](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/models%2Fv1.3), stored in the `/app/models` path. If you want to use your own model library, you can [use Docker to mount a data volume to the container](https://yeasy.gitbook.io/docker_practice/data_management/volume#qi-dong-yi-ge-gua-zai-shu-ju-juan-de-rong-qi), then use the parameter `-models_path` to specify the new model library path.
 
-## 将PaddleOCR-json Docker镜像集成到你的Dockerfile里面
+## Integrating PaddleOCR-json Docker Image into Your Dockerfile
 
-你可以在完成PaddleOCR-json的Docker镜像构建之后将其集成在其他的Dockerfile里。
+You can integrate it into other Dockerfiles after completing the PaddleOCR-json Docker image build.
 
-假设你需要在一个容器里运行PaddleOCR-json和另一个进程，我们先写一个简单的bash脚本来启动多个进程到后台。
+Assuming you need to run PaddleOCR-json and another process in one container, let's first write a simple bash script to start multiple processes in the background.
 
-#### run.sh
+### run.sh
 
 ```sh
 #!/bin/bash
 
-# 启动PaddleOCR-json到后台，监听 127.0.0.1:1234，这样你的进程就可以通过这个端口来与PaddleOCR-json通信
+# Start PaddleOCR-json in the background, listening on 127.0.0.1:1234, so your process can communicate with PaddleOCR-json through this port
 PaddleOCR-json -models_path /app/models -addr loopback -port 1234 &
 
-# 启动你的进程到后台
+# Start your process in the background
 ./my_process &
 
-# 等待任意一个进程退出
+# Wait for any process to exit
 wait -n
 
-# 以第一个退出的进程的退出状态来退出脚本
+# Exit the script with the exit status of the first exited process
 exit $?
 ```
 
-接下来我们就可以写一个新的Dockerfile了
+Next, we can write a new Dockerfile
 
 #### Dockerfile
 
 ```dockerfile
-# 以我们构建的Docker镜像为基础
+# Base on the Docker image we built
 FROM paddleocr-json:latest
 
-# 运行其他命令
+# Run other commands
 RUN ...
 
-# 复制其他文件
+# Copy other files
 COPY ....
 
-# 复制我们刚刚写的脚本
+# Copy the script we just wrote
 COPY run.sh run.sh
 
-# 启动PaddleOCR-json引擎进程
-# 这里需要用 ENTRYPOINT 来覆盖掉 paddleocr-json 镜像里的 ENTRYPOINT
-# 用 CMD 会出错
+# Start the PaddleOCR-json engine process
+# Here we need to use ENTRYPOINT to override the ENTRYPOINT in the paddleocr-json image
+# Using CMD will cause errors
 ENTRYPOINT ["./run.sh"]
 ```
 
-之后直接构建镜像再运行就行了
+After that, just build the image and run it
 
 ```sh
 docker build -t myimage .
@@ -125,16 +130,17 @@ docker build -t myimage .
 docker run -d --name mycontainer myimage
 ```
 
-更多例子请看：
-* [官方文档](https://docs.docker.com/config/containers/multi-service_container/)
-* [腾讯云文章](https://cloud.tencent.com/developer/article/1683445)
+For more examples, see:
+>
+> * [Official Documentation](https://docs.docker.com/config/containers/multi-service_container/)
+> * [Tencent Cloud Article](https://cloud.tencent.com/developer/article/1683445)
 
-## 通过API调用OCR
+## Calling OCR through API
 
-我们提供了 Python、Java 等语言的API，详见 [README-通过API调用](../README.md/#通过API调用) 。您可以通过这些API的 **套接字模式** 来调用Docker中的OCR服务，向API接口传入容器的IP和暴露端口即可。
+We provide APIs in languages like Python and Java, see [README-Calling through API](../README.md/#calling-through-api). You can use the **socket mode** of these APIs to call the OCR service in Docker, just pass the container's IP and exposed port to the API interface.
 
-## 其他问题
+## Other Issues
 
-### [关于内存泄漏 / 长期高内存占用](./README.md#关于内存泄漏--长期高内存占用)
+### [About Memory Leaks / Long-term High Memory Usage](./README.md#about-memory-leaks--long-term-high-memory-usage)
 
-如果你打算使用文档中提到的方法2，由于docker镜像在构建时就会自动构建编译整个项目，所以您只需要重新clone一遍本仓库并重新构建一遍docker镜像就行了。
+If you plan to use method 2 mentioned in the document, since the docker image will automatically build and compile the entire project during building, you just need to re-clone this repository and rebuild the docker image.

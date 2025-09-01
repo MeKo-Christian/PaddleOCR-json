@@ -1,9 +1,9 @@
 #! /bin/bash -e
 
-# 当前脚本必须在 cpp/.source 工作目录下执行
-source_dir=$(pwd)  # 当前工作目录
+# Current script must be executed in cpp/.source working directory
+source_dir=$(pwd)  # Current working directory
 
-# 获取 OpenCV 源码目录（可相对工作目录）
+# Get OpenCV source directory (can be relative to working directory)
 if [ $# -lt 1 ]; then
     echo "Usage: build_opencv.sh /path/to/opencv"
     exit 1
@@ -12,8 +12,8 @@ opencv_dir=$1
 opencv_dir=$(realpath "$opencv_dir")
 cd "$opencv_dir"
 
-build_dir="${opencv_dir}/build"  # 构建目录
-release_dir="${source_dir}/opencv-release"  # 生成目录
+build_dir="${opencv_dir}/build"  # Build directory
+release_dir="${source_dir}/opencv-release"  # Output directory
 
 if [ -d ${build_dir} ]; then
     rm -rf ${build_dir}

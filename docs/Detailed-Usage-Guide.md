@@ -79,7 +79,7 @@ All incoming instructions must be JSON format strings. **It is strongly recommen
 
 ```json
 Original:
-{"image_path": "测试图片\\test 1.jpg"}
+{"image_path": "test image\\test 1.jpg"}
 
 After escaping:
 {"image_path": "\u6D4B\u8BD5\u56FE\u7247\\test 1.jpg"}

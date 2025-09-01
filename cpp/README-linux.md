@@ -1,174 +1,174 @@
-# PaddleOCR-json V1.4 Linux 构建指南
+# PaddleOCR-json V1.4 Linux Build Guide
 
-> 注：此开发版基于 Paddle Inference 3.0.0 推理后端，在不带 AVX512 指令集的普通家用CPU上存在性能显著下降的问题。普通用户建议切换到本项目稳定版分支。
+> Note: This development version is based on Paddle Inference 3.0.0 inference backend, and there is a significant performance degradation issue on ordinary home CPUs without AVX512 instruction set. Ordinary users are recommended to switch to the stable branch of this project.
 
-本文档帮助如何在Linux上编译 PaddleOCR-json V1.4 （对应PaddleOCR v2.8）。推荐给具有一定Linux命令行使用经验的读者。
+This document helps how to compile PaddleOCR-json V1.4 (corresponding to PaddleOCR v2.8) on Linux. Recommended for readers with some Linux command line experience.
 
-本文参考了 PaddleOCR官方的[编译指南](https://github.com/PaddlePaddle/PaddleOCR/blob/relea> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。 * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。e/2.8/deploy/cpp_infer/readme_ch.md) ，但建议以本文为准。
+This article refers to PaddleOCR official's [compilation guide](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/readme_ch.md), but it is recommended to follow this article.
 
-另外，本文将使用Debian/Ubuntu系列linux为例子进行讲解。其他linux发行版的用户请自行替换一些对应的命令（比如apt这类的）。
+In addition, this article will use Debian/Ubuntu series linux as an example for explanation. Users of other linux distributions please replace some corresponding commands (such as apt).
 
-相关文档：
-- [Windows 构建指南](./README.md)
-- [Docker 部署](./README-docker.md)
-- 其他平台 [移植指南](docs/Migration-Guide.md)
+Related documents:
+- [Windows Build Guide](./README.md)
+- [Docker Deployment](./README-docker.md)
+- Other platforms [Porting Guide](docs/Migration-Guide.md)
 
-可参考的文档：
-- [PaddleOCR 官方文档](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/readme_ch.md#12-%E7%BC%96%E8%AF%91opencv%E5%BA%93)
-- [OpenCV 官方文档](https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html)
+Reference documents:
+- [PaddleOCR Official Documentation](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/readme_ch.md#12-%E7%BC%96%E8%AF%91opencv%E5%BA%93)
+- [OpenCV Official Documentation](https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html)
 
 
-## 1. 前期准备
+## 1. Preparation
 
-### 1.0 兼容性检查：
+### 1.0 Compatibility Check:
 
-**PaddleOCR-json 只支持具有AVX指令集的CPU。更多细节请查看[CPU要求](../README.md#离线ocr组件-系列项目)和[兼容性](../README.md#兼容性)。**
+**PaddleOCR-json only supports CPUs with AVX instruction set. For more details, please check [CPU Requirements](../README.md#offline-ocr-components-series-projects) and [Compatibility](../README.md#compatibility).**
 
-请先检查你的CPU兼容性：
+Please check your CPU compatibility first:
 
 ```sh
 lscpu | grep avx
 ```
 
-**如果你的CPU支持AVX指令集，你的输出大概长这样（你可以在输出里找到 `avx` 的字符）：**
+**If your CPU supports AVX instruction set, your output will look like this (you can find 'avx' characters in the output):**
 
 ```
 Flags:                              fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid pni pclmulqdq vmx ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow vnmi ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves avx_vnni umip waitpkg gfni vaes vpclmulqdq rdpid movdiri movdir64b fsrm md_clear serialize flush_l1d arch_capabilities
 ```
 
-**如果你看不到任何输出，这表明你的CPU不支持AVX指令集。**
+**If you don't see any output, it means your CPU does not support AVX instruction set.**
 
 > [!TIP]
-> 如果你的CPU不支持AVX指令集，我们建议你尝试隔壁的[RapidOCR-json](https://github.com/hiroi-sora/RapidOCR-json)
+> If your CPU does not support AVX instruction set, we recommend you try the neighboring [RapidOCR-json](https://github.com/hiroi-sora/RapidOCR-json)
 >
-> 当然，你也可以更换一个不需要AVX指令集的预测库来编译PaddleOCR-json（比如 `manylinux_cpu_noavx_openblas_gcc8.2` ）。不过大概率运行不了。
+> Of course, you can also replace with a prediction library that does not require AVX instruction set to compile PaddleOCR-json (such as `manylinux_cpu_noavx_openblas_gcc8.2`). But it probably won't run.
 > 
-> 如果你执意要使用无AVX指令集的预测库来编译PaddleOCR-json，编译、运行时遇到问题大概率为预测库不兼容，此时可以优先去[PaddleOCR官方的仓库看看](https://github.com/PaddlePaddle/PaddleOCR/issues)
-> * 如果你遇到了`核心已转储（core dump）`的报错，也可以看看[这个issue](https://github.com/hiroi-sora/PaddleOCR-json/issues/170)
+> If you insist on using a prediction library without AVX instruction set to compile PaddleOCR-json, if you encounter problems during compilation and runtime, it is likely due to prediction library incompatibility. At this time, you can prioritize checking [PaddleOCR official repository](https://github.com/PaddlePaddle/PaddleOCR/issues)
+> * If you encounter a `core dump` error, you can also check [this issue](https://github.com/hiroi-sora/PaddleOCR-json/issues/170)
 
-### 1.1 安装所需工具
+### 1.1 Install Required Tools
 
 ```sh
 sudo apt install wget tar zip unzip git gcc g++ cmake make libgomp1
 ```
 
-- wget（下载预测库用）
-- tar、zip、unzip（解压软件）
+- wget (for downloading prediction library)
+- tar, zip, unzip (for decompressing software)
 - git
-- gcc 和 g++
-- cmake 和 make
-- libgomp1（OpenMP共享库，PaddleOCR底层依赖）
+- gcc and g++
+- cmake and make
+- libgomp1 (OpenMP shared library, PaddleOCR underlying dependency)
 
-### 1.2 下载所需资源
+### 1.2 Download Required Resources
 
-PaddleOCR-json 源码：
+PaddleOCR-json source code:
 
 ```sh
 git clone https://github.com/hiroi-sora/PaddleOCR-json.git
 cd PaddleOCR-json
 ```
 
-下载资源库：
+Download resource library:
 
 ```sh
-# 存放目录
+# Storage directory
 mkdir -p cpp/.source
 cd cpp/.source
-# 推理库
+# Inference library
 wget https://paddle-inference-lib.bj.bcebos.com/3.0.0-beta1/cxx_c/Linux/CPU/gcc8.2_avx_mkl/paddle_inference.tgz
 tar -xf paddle_inference.tgz
 mv paddle_inference paddle_inference_manylinux_cpu_avx_mkl_gcc8.2
-# 模型库
+# Model library
 wget https://github.com/hiroi-sora/PaddleOCR-json/releases/download/v1.4.1-dev/models_v1.4.1.zip
 unzip -x models_v1.4.1.zip
 ```
 
-- [paddle_inference](https://www.paddlepaddle.org.cn/inference/master/guides/install/download_lib.html) (Linux, C++预测库, gcc编译器版本, manylinux_cpu_avx_mkl_gcc8.2)
-- [模型库](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.4.1-dev) (models.zip)
+- [paddle_inference](https://www.paddlepaddle.org.cn/inference/master/guides/install/download_lib.html) (Linux, C++ prediction library, gcc compiler version, manylinux_cpu_avx_mkl_gcc8.2)
+- [Model library](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.4.1-dev) (models.zip)
 
-### 1.3 准备 OpenCV
+### 1.3 Prepare OpenCV
 
-#### 方式1：下载预编译的轻量化 OpenCV 包（推荐）
+#### Method 1: Download pre-compiled lightweight OpenCV package (recommended)
 
 ```sh
 wget https://github.com/hiroi-sora/PaddleOCR-json/releases/download/v1.4.0-beta.2/opencv-release_debian_x86-64.zip
 unzip -x opencv-release_debian_x86-64.zip
 ```
 
-此OpenCV库仅编译了 PaddleOCR-json 所需的少数依赖项，更轻量和简洁。
+This OpenCV library only compiles the few dependencies required by PaddleOCR-json, making it lighter and simpler.
 
-不过，它仅在 Debian 系的系统上进行过测试。如果发现不兼容您的系统，可改用下列方式准备 OpenCV 。
+However, it has only been tested on Debian-based systems. If you find it incompatible with your system, you can use the following methods to prepare OpenCV.
 
-#### 方式2：安装 libopencv-dev 到系统中
+#### Method 2: Install libopencv-dev to the system
 
-如果只是在本地使用 PaddleOCR-json ，则可直接安装 OpenCV 开发工具到本地。
+If you are only using PaddleOCR-json locally, you can directly install OpenCV development tools locally.
 
-安装过程简单，但如果后续要将构建好的 PaddleOCR-json 转移到其他设备上使用，则需要手动收集系统路径中的 OpenCV 依赖库。
+The installation process is simple, but if you want to transfer the built PaddleOCR-json to other devices for use, you need to manually collect the OpenCV dependency libraries in the system path.
 
 ```sh
 sudo apt install libopencv-dev
 ```
 
-#### 方式3：本地编译 OpenCV
+#### Method 3: Compile OpenCV locally
 
-可参考 [OpenCV 官方文档](https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html) ，或下列步骤：
+You can refer to [OpenCV Official Documentation](https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html), or the following steps:
 
 > [!TIP]
-> 步骤和编译脚本不一定兼容所有系统，仅供参考。
+> The steps and compilation script are not necessarily compatible with all systems, for reference only.
 
-1. 在 `cpp/.source` 目录中，下载 OpenCV release v4.10.0 源码 ，解压得到 `opencv-4.10.0` ：
+1. In the `cpp/.source` directory, download OpenCV release v4.10.0 source code, unzip to get `opencv-4.10.0`:
 
 ```sh
 wget -O opencv.zip https://github.com/opencv/opencv/archive/refs/tags/4.10.0.zip
 unzip opencv.zip
-ls -d opencv*/  # 检查解压后得到的目录名
+ls -d opencv*/  # Check the directory name after unzipping
 ```
 
-2. 调用一键编译脚本，传入OpenCV源码解压后的目录名：
+2. Call the one-click compilation script, passing the directory name after OpenCV source code unzipping:
 
 ```sh
 ../tools/linux_build_opencv.sh opencv-4.10.0
 ```
 
-3. 如果编译成功，则会在 `.source` 目录中生成 `opencv-lib` 目录。
+3. If compilation is successful, an `opencv-lib` directory will be generated in the `.source` directory.
 
 <details>
-<summary>推荐使用的编译参数及说明</summary>
+<summary>Recommended compilation parameters and explanations</summary>
 </br>
 
-如果您不使用一键编译脚本 `tools/linux_build_opencv.sh` ，而是手动编译，推荐使用以下参数：
+If you do not use the one-click compilation script `tools/linux_build_opencv.sh`, but compile manually, it is recommended to use the following parameters:
 
-| 参数                                | 说明                                             |
-| ----------------------------------- | ------------------------------------------------ |
-| -DCMAKE_BUILD_TYPE=Release          |                                                  |
-| -DBUILD_LIST=core,imgcodecs,imgproc | PPOCR仅依赖这三个模块                            |
-| -DBUILD_SHARED_LIBS=ON              |                                                  |
-| -DBUILD_opencv_world=OFF            |                                                  |
-| -DOPENCV_FORCE_3RDPARTY_BUILD=ON    | 强制构建所有第三方库，避免在某些系统中缺失依赖库 |
-| -DWITH_ZLIB=ON                      | 图片格式编解码支持                               |
-| -DWITH_TIFF=ON                      | 图片格式编解码支持                               |
-| -DWITH_OPENJPEG=ON                  | 图片格式编解码支持                               |
-| -DWITH_JASPER=ON                    | 图片格式编解码支持                               |
-| -DWITH_JPEG=ON                      | 图片格式编解码支持                               |
-| -DWITH_PNG=ON                       | 图片格式编解码支持                               |
-| -DWITH_OPENEXR=ON                   | 图片格式编解码支持                               |
-| -DWITH_WEBP=ON                      | 图片格式编解码支持                               |
-| -DWITH_IPP=ON                       | 启用 Intel CPU 加速库                            |
-| -DWITH_LAPACK=ON                    | 启用数学运算加速库                               |
-| -DWITH_EIGEN=ON                     | 启用数学运算加速库                               |
-| -DBUILD_PERF_TESTS=OFF              | 关闭不需要的测试/文档/语言模块                   |
-| -DBUILD_TESTS=OFF                   | 关闭不需要的测试/文档/语言模块                   |
-| -DBUILD_DOCSL=OFF                   | 关闭不需要的测试/文档/语言模块                   |
-| -DBUILD_JAVA=OFF                    | 关闭不需要的测试/文档/语言模块                   |
-| -DBUILD_opencv_python2=OFF          | 关闭不需要的测试/文档/语言模块                   |
-| -DBUILD_opencv_python3=OFF          | 关闭不需要的测试/文档/语言模块                   |
+| Parameter                           | Description                                       |
+| ----------------------------------- | ------------------------------------------------- |
+| -DCMAKE_BUILD_TYPE=Release          |                                                   |
+| -DBUILD_LIST=core,imgcodecs,imgproc | PPOCR only depends on these three modules         |
+| -DBUILD_SHARED_LIBS=ON              |                                                   |
+| -DBUILD_opencv_world=OFF            |                                                   |
+| -DOPENCV_FORCE_3RDPARTY_BUILD=ON    | Force building all third-party libraries to avoid missing dependencies in some systems |
+| -DWITH_ZLIB=ON                      | Image format codec support                        |
+| -DWITH_TIFF=ON                      | Image format codec support                        |
+| -DWITH_OPENJPEG=ON                  | Image format codec support                        |
+| -DWITH_JASPER=ON                    | Image format codec support                        |
+| -DWITH_JPEG=ON                      | Image format codec support                        |
+| -DWITH_PNG=ON                       | Image format codec support                        |
+| -DWITH_OPENEXR=ON                   | Image format codec support                        |
+| -DWITH_WEBP=ON                      | Image format codec support                        |
+| -DWITH_IPP=ON                       | Enable Intel CPU acceleration library             |
+| -DWITH_LAPACK=ON                    | Enable mathematical operation acceleration library|
+| -DWITH_EIGEN=ON                     | Enable mathematical operation acceleration library|
+| -DBUILD_PERF_TESTS=OFF              | Close unnecessary test/documentation/language modules |
+| -DBUILD_TESTS=OFF                   | Close unnecessary test/documentation/language modules |
+| -DBUILD_DOCSL=OFF                   | Close unnecessary test/documentation/language modules |
+| -DBUILD_JAVA=OFF                    | Close unnecessary test/documentation/language modules |
+| -DBUILD_opencv_python2=OFF          | Close unnecessary test/documentation/language modules |
+| -DBUILD_opencv_python3=OFF          | Close unnecessary test/documentation/language modules |
 
 </details>
 
 
-### 1.4 检查
+### 1.4 Check
 
-完成后应该是这样：
+After completion, it should be like this:
 ```
 PaddleOCR-json
 └─ cpp
@@ -183,136 +183,136 @@ PaddleOCR-json
     └─ src
 ```
 
-为了方便后续 PaddleOCR-json 本体的编译，将依赖库路径设置为环境变量：
+To facilitate the subsequent compilation of PaddleOCR-json itself, set the dependency library paths as environment variables:
 
 ```sh
 export PADDLE_LIB="$(pwd)/$(ls -d *paddle_inference*/ | head -n1)"
 export MODELS="$(pwd)/models"
 
-# 如果使用方式1或3准备 OpenCV ，那么记录 OpenCV 路径。
-# 如果使用方式2安装 libopencv-dev ，则无需进行。
+# If using method 1 or 3 to prepare OpenCV, record the OpenCV path.
+# If using method 2 to install libopencv-dev, no need to do this.
 export OPENCV_DIR="$(pwd)/opencv-release"
 ```
 
-可以用echo来检查一下
+You can use echo to check
 
 ```sh
 echo $PADDLE_LIB
 echo $MODELS
-echo $OPENCV_DIR  # 可选
+echo $OPENCV_DIR  # Optional
 ```
 
-回到 `cpp` 目录下
+Go back to the `cpp` directory
 
 ```sh
 cd ..
 ```
 
-## 2. 构建 & 编译项目
+## 2. Build & Compile Project
 
-0. 如果无需自定义项目，可跳转到 [4.一键编译+运行](#compile-run)
+0. If no customization of the project is needed, jump to [4. One-click compile + run](#compile-run)
 
-1. 在 `PaddleOCR-json/cpp` 下，新建一个文件夹 `build`
+1. Under `PaddleOCR-json/cpp`, create a new folder `build`
 
 ```sh
 mkdir build
 ```
 
-2. 使用 CMake 构建项目。参数含义见 [CMake构建参数](#cmake-args)
+2. Use CMake to build the project. Parameter meanings see [CMake Build Parameters](#cmake-args)
 
 ```sh
 cmake -S . -B build/ \
     -DPADDLE_LIB=$PADDLE_LIB \
     -DCMAKE_BUILD_TYPE=Release \
-    -DOPENCV_DIR=$OPENCV_DIR  # 可选：OpenCV 路径
+    -DOPENCV_DIR=$OPENCV_DIR  # Optional: OpenCV path
 ```
 
-说明：
-* `-S .` ：指定当前文件夹 `PaddleOCR-json/cpp` 为CMake项目根文件夹
-* `-B build/` ：指定 `PaddleOCR-json/cpp/build` 文件夹为工程文件夹
-* `-DPADDLE_LIB=$PADDLE_LIB` ：使用刚才设置的环境变量 `$PADDLE_LIB` 去指定预测库的位置
-* `-DCMAKE_BUILD_TYPE=Release` ：将这个工程设置为 `Release` 工程。你也可以把它改成 `Debug`。
-* `-DOPENCV_DIR=$OPENCV_DIR` ：使用刚才设置的环境变量 `$OPENCV_DIR` 去指定自编译OpenCV的位置。如果安装 libopencv-dev ，则无需设置此参数
+Explanation:
+* `-S .` : Specify the current folder `PaddleOCR-json/cpp` as the CMake project root folder
+* `-B build/` : Specify `PaddleOCR-json/cpp/build` folder as the project folder
+* `-DPADDLE_LIB=$PADDLE_LIB` : Use the environment variable `$PADDLE_LIB` set earlier to specify the prediction library location
+* `-DCMAKE_BUILD_TYPE=Release` : Set this project to `Release` project. You can also change it to `Debug`.
+* `-DOPENCV_DIR=$OPENCV_DIR` : Use the environment variable `$OPENCV_DIR` set earlier to specify the self-compiled OpenCV location. If installing libopencv-dev, no need to set this parameter
 
-3. 使用 CMake 编译项目
+3. Use CMake to compile the project
 
 ```sh
 cmake --build build/
 ```
 
-- 这里我们使用 `--build build/` 命令来指定要编译的工程文件夹 `build`。
+- Here we use the `--build build/` command to specify the project folder `build` to compile.
 
 <a id="cmake-args"></a>
 
-#### CMake构建参数
+#### CMake Build Parameters
 
-你可以使用 `-D参数名=值` 来添加新的CMake参数。
+You can use `-DParameterName=Value` to add new CMake parameters.
 
-以下参数是一些编译参数：
+The following are some compilation parameters:
 
-| 参数名            | 描述                                                             |
-| ----------------- | ---------------------------------------------------------------- |
-| `WITH_MKL`        | 使用MKL或OpenBlas，默认使用MKL。                                 |
-| `WITH_GPU`        | 使用GPU或CPU，默认使用CPU。                                      |
-| `WITH_STATIC_LIB` | 编译成static library或shared library，默认编译成static library。 |
-| `WITH_TENSORRT`   | 使用TensorRT，默认关闭。                                         |
+| Parameter Name    | Description                                              |
+| ----------------- | -------------------------------------------------------- |
+| `WITH_MKL`        | Use MKL or OpenBlas, default use MKL.                    |
+| `WITH_GPU`        | Use GPU or CPU, default use CPU.                         |
+| `WITH_STATIC_LIB` | Compile into static library or shared library, default compile into static library. |
+| `WITH_TENSORRT`   | Use TensorRT, default off.                               |
 
 > [!NOTE]
-> * `WITH_STATIC_LIB`: Linux下这个参数设置成 `ON` 时无法编译，所以它是强行设置成 `OFF` 的。
+> * `WITH_STATIC_LIB`: On Linux, this parameter cannot be compiled when set to `ON`, so it is forcibly set to `OFF`.
 
-以下是一些依赖库路径相关参数。除了 `PADDLE_LIB` 是必填的以外其他的视情况而定。
+The following are some dependency library path related parameters. Except for `PADDLE_LIB` which is required, others depend on the situation.
 
-| 参数名         | 描述                         |
+| Parameter Name | Description                  |
 | -------------- | ---------------------------- |
-| `PADDLE_LIB`   | paddle_inference的路径       |
-| `OPENCV_DIR`   | 库的路径                     |
-| `CUDA_LIB`     | 库的路径                     |
-| `CUDNN_LIB`    | 库的路径                     |
-| `TENSORRT_DIR` | 使用TensorRT编译并设置其路径 |
+| `PADDLE_LIB`   | Path to paddle_inference     |
+| `OPENCV_DIR`   | Path to library              |
+| `CUDA_LIB`     | Path to library              |
+| `CUDNN_LIB`    | Path to library              |
+| `TENSORRT_DIR` | Use TensorRT compile and set its path |
 
 > [!NOTE]
-> * 您也可以通过设置环境变量 `OpenCV_DIR` 来设置OpenCV库的路径，注意变量名大小写敏感。
-> * `OPENCV_DIR` 或环境变量: Linux下，如果已经安装到系统之中就不用指定了。
+> * You can also set the OpenCV library path by setting the environment variable `OpenCV_DIR`, note that the variable name is case sensitive.
+> * `OPENCV_DIR` or environment variable: On Linux, if already installed in the system, no need to specify.
 
-以下是一些PaddleOCR-json功能相关参数。
+The following are some PaddleOCR-json function related parameters.
 
-| 参数名                   | 描述                                 |
-| ------------------------ | ------------------------------------ |
-| `ENABLE_CLIPBOARD`       | 启用剪贴板功能。默认关闭。           |
-| `ENABLE_REMOTE_EXIT`     | 启用远程关停引擎进程命令。默认开启。 |
-| `ENABLE_JSON_IMAGE_PATH` | 启用json命令image_path。默认开启。   |
+| Parameter Name            | Description                              |
+| ------------------------- | ---------------------------------------- |
+| `ENABLE_CLIPBOARD`        | Enable clipboard function. Default off.  |
+| `ENABLE_REMOTE_EXIT`      | Enable remote shutdown engine process command. Default on. |
+| `ENABLE_JSON_IMAGE_PATH`  | Enable json command image_path. Default on. |
 
 > [!NOTE]
-> * `ENABLE_CLIPBOARD`: Linux下没有剪贴板功能，启用了也无法使用。
-> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 “[传入 `exit` 关停引擎进程](../docs/详细使用指南.md#4-关闭引擎进程)” 的功能。
-> * `ENABLE_JSON_IMAGE_PATH`: 这个参数控制着 “使用`{"image_path":""}`指定路径” 的功能。
+> * `ENABLE_CLIPBOARD`: There is no clipboard function on Linux, even if enabled, it cannot be used.
+> * `ENABLE_REMOTE_EXIT`: This parameter controls the "[pass `exit` to shutdown engine process](../docs/Detailed-Usage-Guide.md#4-shutdown-engine-process)" function.
+> * `ENABLE_JSON_IMAGE_PATH`: This parameter controls the "use `{"image_path":""}` to specify path" function.
 
-以下是一些CMake功能相关参数。
+The following are some CMake function related parameters.
 
-| 参数名               | 描述                                |
-| -------------------- | ----------------------------------- |
-| `INSTALL_WITH_TOOLS` | CMake安装时附带工具文件。默认开启。 |
+| Parameter Name        | Description                             |
+| --------------------- | --------------------------------------- |
+| `INSTALL_WITH_TOOLS`  | CMake install with tool files. Default on. |
 
-#### 关于剪贴板读取
+#### About Clipboard Reading
 
-在Linux下，从剪贴板中读取数据的功能不存在。即使把 `ENABLE_CLIPBOARD` 设置成 `ON` 也无法使用。
+On Linux, the function to read data from the clipboard does not exist. Even if `ENABLE_CLIPBOARD` is set to `ON`, it cannot be used.
 
-#### 构建 or 编译失败？
+#### Build or Compile Failed?
 
-如果报错中含有 `unable to access 'https://github.com/LDOUBLEV/AutoLog.git/': gnutls_handshake() failed: The TLS connection was non-properly terminated.` ，原因是网络问题，请挂全局科学上网。如果没有科学，那么可尝试将 `deploy/cpp_infer/external-cmake/auto-log.cmake` 中的github地址改为 `https://gitee.com/Double_V/AutoLog` 。
+If the error contains `unable to access 'https://github.com/LDOUBLEV/AutoLog.git/': gnutls_handshake() failed: The TLS connection was non-properly terminated.`, the reason is network problem, please use global proxy. If no proxy, you can try changing the github address in `deploy/cpp_infer/external-cmake/auto-log.cmake` to `https://gitee.com/Double_V/AutoLog`.
 
-欢迎提出Issue。
+Welcome to submit Issue.
 
 
-## 3. 配置 & 运行可执行文件
+## 3. Configure & Run Executable
 
-1. 到这一步，你应该可以在 `build/bin/` 文件夹下找到一个叫 `PaddleOCR-json` 的可执行文件
+1. At this step, you should be able to find an executable called `PaddleOCR-json` in the `build/bin/` folder
 
 ```sh
 ls ./build/bin/PaddleOCR-json
 ```
 
-2. 直接运行的话会得到这样一个错误
+2. Running directly will get an error like this
 
 ```sh
 ./build/bin/PaddleOCR-json
@@ -323,86 +323,86 @@ ls ./build/bin/PaddleOCR-json
 ```
 
 > [!NOTE]
-> 这是因为系统没法在环境变量 `LD_LIBRARY_PATH` 里列出的路径下找到上面这个共享库 `libiomp5.so`。
+> This is because the system cannot find the shared library `libiomp5.so` in the paths listed in the environment variable `LD_LIBRARY_PATH`.
 
-3. 这里我们直接更新环境变量 `LD_LIBRARY_PATH` 来解决。
+3. Here we directly update the environment variable `LD_LIBRARY_PATH` to solve it.
 
 ```sh
-# 所有的预测库共享库都已经被自动复制到 "build/bin" 文件夹下了，这里我们把它存到一个变量里。
+# All prediction library shared libraries have been automatically copied to the "build/bin" folder, here we store it in a variable.
 LIBS="$(pwd)/build/bin/"
 LD_LIBRARY_PATH=$LIBS ./build/bin/PaddleOCR-json
 ```
 
 > [!TIP]
 > 
-> [什么是LD_LIBRARY_PATH？](https://developer.aliyun.com/article/1269445)
+> [What is LD_LIBRARY_PATH?](https://developer.aliyun.com/article/1269445)
 > 
-> [使用LD_LIBRARY_PATH的风险？](https://m.ituring.com.cn/article/22101)
+> [Risks of using LD_LIBRARY_PATH?](https://m.ituring.com.cn/article/22101)
 
 > [!NOTE]
-> 如果你打算长期使用PaddleOCR-json的话，可以参考[安装章节](#5-安装)。
+> If you plan to use PaddleOCR-json for a long time, you can refer to the [Installation Chapter](#5-installation).
 
-4. 到这一步，PaddleOCR-json 已经可以运行了。不过它会提示你缺少配置文件。我们所需的所有文件都在之前准备的模型库 `module` 文件夹里面。
+4. At this step, PaddleOCR-json can already run. But it will prompt you that the configuration file is missing. All the files we need are in the model library `module` folder prepared earlier.
 
 ```sh
 LD_LIBRARY_PATH=$LIBS ./build/bin/PaddleOCR-json \
     -models_path="$MODELS" \
     -config_path="$MODELS/config_chinese.txt" \
-    -image_path="/path/to/image.jpg" # 图片的路径
+    -image_path="/path/to/image.jpg" # Path to the image
 ```
 
 > [!TIP]
-> 更多配置参数请参考[简单试用](../README.md#简单试用)和[常用配置参数说明](../README.md#常用配置参数说明)
+> For more configuration parameters, please refer to [Simple Trial](../README.md#simple-trial) and [Common Configuration Parameters Explanation](../README.md#common-configuration-parameters-explanation)
 
-5. 如果要打包、转移到其他设备上运行，还需 [放置OpenCV二进制包](#二进制包的放置) 。
+5. If you want to package and transfer to other devices to run, you also need to [place OpenCV binary package](#13-prepare-opencv).
 
 <a id="compile-run"></a>
 
-## 4. 一键编译 + 运行
+## 4. One-click Compile + Run
 
-我们准备了两个简单的脚本方便一键编译、运行PaddleOCR-json。
+We have prepared two simple scripts for one-click compile and run PaddleOCR-json.
 
 > [!WARNING]
-> 请注意，下面这些脚本并没有安装 PaddleOCR-json 到你的系统里。不适合想要长期使用的用户。只是方便开发者的重复编译、测试
+> Please note that these scripts below do not install PaddleOCR-json into your system. Not suitable for users who want long-term use. Just for developers' repeated compilation and testing
 
-### 4.1 一键编译
+### 4.1 One-click Compile
 
-在完成[第一大章前期准备](#1-前期准备)之后，你可以使用下面这个脚本来直接构建 + 编译工程。
+After completing [Chapter 1 Preparation](#1-preparation), you can use the following script to directly build + compile the project.
 
 ```sh
 ./tools/linux_build.sh
 ```
 
-### 4.2 一键运行
+### 4.2 One-click Run
 
-在编译完成后（[完成第二大章之后](#2-构建--编译项目)），你可以使用下面这个脚本来直接运行PaddleOCR-json
+After compilation is completed (after [completing Chapter 2](#2-build--compile-project)), you can use the following script to directly run PaddleOCR-json
 
 ```sh
-./tools/linux_run.sh [配置参数]
+./tools/linux_run.sh [configuration parameters]
 ```
 
-* [常用配置参数](../README.md#常用配置参数说明)
+* [Common Configuration Parameters](../README.md#common-configuration-parameters-explanation)
 
-## 5. 安装
+## 5. Installation
 
-你可以使用CMake来安装PaddleOCR-json到系统里。直接以 `sudo` 权限运行下面这条命令。
+You can use CMake to install PaddleOCR-json into the system. Run the following command directly with `sudo` permission.
 
 ```sh
 sudo cmake --install build
 ```
 
-CMake会将 `build` 文件夹下的可执行文件和运行库给安装到系统文件夹 `/usr/` 下，这样你就可以直接用 `PaddleOCR-json` 来调用这个软件了。
+CMake will install the executable files and runtime libraries from the `build` folder to the system folder `/usr/`, so you can directly call this software with `PaddleOCR-json`.
 
-如果你希望安装到指定位置，你可以为上面这条命令加上参数 `--prefix /安装路径/` 来指定一个安装路径。比如 `--prefix build/install` 会将所有的文件都安装到 `build/install` 文件夹下。
-
-> [!TIP]
-> 在Linux下安装时，CMake会额外安装一些工具脚本和文档以方便用户直接使用（[就是 `linux_dist_tools/` 文件夹下的东西](./tools/linux_dist_tools/)）。这个功能可以帮助开发者更方便的打包软件。但是，如果你希望将PaddleOCR-json安装到系统文件夹里，你则不需要这些工具文件。你可以通过关闭CMake参数 `INSTALL_WITH_TOOLS` 来禁用这些工具文件的安装。
+If you want to install to a specified location, you can add the parameter `--prefix /installation/path/` to the above command to specify an installation path. For example, `--prefix build/install` will install all files to the `build/install` folder.
 
 > [!TIP]
-> CMake在安装PaddleOCR-json时，会将所有在 `build/bin` 文件夹下的共享依赖库给复制到安装目录的 `lib` 文件夹下。但是，Linux的很多共享库是被拆分在系统文件夹里的（比如 `/usr/lib/` ）。CMake无法自动找到这些共享依赖库。如果你需要将PaddleOCR-json打包成一个无依赖的软件，你需要手动将所需的共享依赖库从系统文件夹里找出并复制到 `build/bin` 文件夹下。这样一来CMake就可以在安装时将完整的共享依赖库一起打包了。
+> When installing on Linux, CMake will additionally install some tool scripts and documents to facilitate direct use by users ([that is, the things in the `linux_dist_tools/` folder](./tools/linux_dist_tools/)). This function can help developers package software more conveniently. However, if you want to install PaddleOCR-json into the system folder, you do not need these tool files. You can disable the installation of these tool files by turning off the CMake parameter `INSTALL_WITH_TOOLS`.
 
-## 6. 其他问题
+> [!TIP]
+> When CMake installs PaddleOCR-json, it will copy all shared dependency libraries in the `build/bin` folder to the `lib` folder of the installation directory. However, many shared libraries on Linux are split in the system folder (such as `/usr/lib/`). CMake cannot automatically find these shared dependency libraries. If you need to package PaddleOCR-json into a dependency-free software, you need to manually find the required shared dependency libraries from the system folder and copy them to the `build/bin` folder. This way, CMake can package the complete shared dependency libraries together during installation.
 
-### [切换语言/模型库/预设](./README.md#5.-切换语言/模型库/预设)
+## 6. Other Issues
 
-### [关于内存占用](./README.md#关于内存占用)
+### [Switch Language/Model Library/Preset](./README.md#5.-switch-language-model-library-preset)
+
+### [About Memory Usage](./README.md#about-memory-usage)

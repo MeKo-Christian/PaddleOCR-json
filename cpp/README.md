@@ -1,43 +1,41 @@
-# PaddleOCR-json V1.4 Windows 构建指南
+# PaddleOCR-json V1.4 Windows Build Guide
 
-> 注：此开发版基于 Paddle Inference 3.0.0 推理后端，在不带 AVX512 指令集的普通家用CPU上存在性能显著下降的问题。普通用户建议切换到> [!NOTE]
-> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。
-> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。* `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。 * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。目稳定版分支。
+> Note: This development version is based on Paddle Inference 3.0.0 inference backend, and there is a significant performance degradation issue on ordinary home CPUs without AVX512 instruction set. Ordinary users are recommended to switch to the stable branch of this project.
 
-本文档帮助如何在Windows上编译 PaddleOCR-json V1.4 （对应PPOCR v2.8）。面向小白，用的最简单的步骤。大佬可酌情调整。
+This document helps how to compile PaddleOCR-json V1.4 (corresponding to PPOCR v2.8) on Windows. For beginners, using the simplest steps. Experts can adjust as appropriate.
 
-本文参考了 PPOCR官方的[编译指南](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/docs/windows_vs2019_build.md) ，但建议以本文为准。
+This article refers to PPOCR official's [compilation guide](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/docs/windows_vs2019_build.md), but it is recommended to follow this article.
 
-相关文档：
-- [Linux 构建指南](./README-linux.md)
-- [Docker 部署](./README-docker.md#使用-docker-部署)
-- 其他平台 [移植指南](docs/Migration-Guide.md)
+Related documents:
+- [Linux Build Guide](./README-linux.md)
+- [Docker Deployment](./README-docker.md#using-docker-deployment)
+- Other platforms [Porting Guide](docs/Migration-Guide.md)
 
 
-## 1. 前期准备
+## 1. Preparation
 
-资源链接后面的(括弧里是版本)，请看清楚。
+Resource links followed by (version in parentheses), please check carefully.
 
-### 1.1 需要安装的工具：
+### 1.1 Tools to Install:
 
-- [Visual Studio 2022](https://learn.microsoft.com/zh-cn/visualstudio/releases/2022/release-notes) (2022或2019均可，Community)
+- [Visual Studio 2022](https://learn.microsoft.com/zh-cn/visualstudio/releases/2022/release-notes) (2022 or 2019 both ok, Community)
 - [Cmake](https://cmake.org/download/) (Windows x64 Installer)
 - [Git](https://git-scm.com/download/win) (64-bit Git for Windows Setup)
 
-### 1.2 需要下载的资源：
+### 1.2 Resources to Download:
 
-- [paddle_inference.zip](https://paddle-inference-lib.bj.bcebos.com/3.0.0-beta1/cxx_c/Windows/CPU/x86-64_avx-mkl-vs2019/paddle_inference.zip) (Windows C++预测库, 3.0.0, cpu_avx_mkl)
+- [paddle_inference.zip](https://paddle-inference-lib.bj.bcebos.com/3.0.0-beta1/cxx_c/Windows/CPU/x86-64_avx-mkl-vs2019/paddle_inference.zip) (Windows C++ prediction library, 3.0.0, cpu_avx_mkl)
 - [Opencv](https://github.com/opencv/opencv/releases) (windows.exe)
-- [模型库](https://github.com/hiroi-sora/PaddleOCR-json/releases/download/v1.4.1-dev/models_v1.4.1.zip) (models.zip)
+- [Model library](https://github.com/hiroi-sora/PaddleOCR-json/releases/download/v1.4.1-dev/models_v1.4.1.zip) (models.zip)
 
-### 1.3 放置资源
+### 1.3 Place Resources
 
-1. clone 本仓库。在 `PaddleOCR-json/cpp` 下新建一个文件夹 `.source` 来存放外部资源。（前面加点是为了按文件名排列更顺眼）
-2. 将下载好的 `models_v1.4.1.zip` 、 `paddle_inference` 和 `Opencv` 解压进`.source`。
-   - `paddle_inference` 应该解压后放入一个单独文件夹内，并且根据版本给文件夹改个后缀，比如是cpu_avx_mkl版，就叫 `paddle_inference_cpu_avx_mkl` ，以便区分。
-   - Opencv看起来是个exe，实际上是个自解压包，运行并选择目录解压。
+1. Clone this repository. Under `PaddleOCR-json/cpp`, create a new folder `.source` to store external resources. (The dot in front is for better file name sorting)
+2. Unzip the downloaded `models_v1.4.1.zip`, `paddle_inference` and `Opencv` into `.source`.
+   - `paddle_inference` should be unzipped into a separate folder, and rename the folder with a suffix according to the version, for example if it's cpu_avx_mkl version, call it `paddle_inference_cpu_avx_mkl`, to distinguish.
+   - Opencv looks like an exe, but it's actually a self-extracting package, run it and choose the directory to extract.
 
-完成后应该是这样：
+After completion, it should be like this:
 ```
 PaddleOCR-json
 └─ cpp
@@ -53,10 +51,10 @@ PaddleOCR-json
     └─ src
 ```
 
-## 2. 构建项目
+## 2. Build Project
 
-1. cmake安装完后系统里会有一个cmake-gui程序，打开cmake-gui。在第一个输入框处填写源代码路径，第二个输入框处填写编译输出路径，见下面的模板。  
-然后，点击左下角第一个按钮Configure，第一次点它会弹出提示框进行Visual Studio配置，选择你的Visual Studio版本（2019、2022均可），目标平台选择x64。然后点击finish按钮即开始自动执行配置。
+1. After cmake installation, there will be a cmake-gui program in the system, open cmake-gui. Fill in the source code path in the first input box, and the compilation output path in the second input box, see the template below.  
+Then, click the first button in the lower left corner Configure, the first time you click it will pop up a prompt box for Visual Studio configuration, select your Visual Studio version (2019, 2022 both ok), target platform select x64. Then click the finish button to start automatic configuration.
 
 Where is the source code: `……/PaddleOCR-json/cpp`
 
@@ -64,10 +62,10 @@ Where to build the binaries: `……/PaddleOCR-json/cpp/build`
 
 ![](docs/imgs/b1.png)
 
-执行完会报错，很正常，点OK。
+After execution, it will report an error, which is normal, click OK.
 ![](docs/imgs/b2.png)
 
-2. 填写两项配置：
+2. Fill in two configurations:
 
 OPENCV_DIR:  
 `……/PaddleOCR-json/cpp/.source/opencv/build/x64/vc16/lib`
@@ -75,108 +73,108 @@ OPENCV_DIR:
 PADDLE_LIB:  
 `……/PaddleOCR-json/cpp/.source/paddle_inference_cpu_avx_mkl`
 
-下面 `WITH_GPU` 确保**不要**勾选。
+Make sure **NOT** to check `WITH_GPU` below.
 
-其他项就不要动了！
+Don't touch other items!
 
 ![](docs/imgs/b3.png)
 
-点击左下角 **第一个按钮Configure** 应用配置，等待几秒，看到输出 `Configuring done` 即可。
+Click the **first button Configure** in the lower left corner to apply the configuration, wait a few seconds, see the output `Configuring done` is ok.
 
-点击左下角 **第二个按钮Generate** 即可生成Visual Studio 项目的sln文件。看到输出 `Generating done` 即可。那么，你会看到 `PaddleOCR-json/cpp/build` 下生成了 `PaddleOCR-json.sln` 及一堆文件。
+Click the **second button Generate** in the lower left corner to generate the Visual Studio project sln file. See the output `Generating done` is ok. Then, you will see `PaddleOCR-json.sln` and a bunch of files generated under `PaddleOCR-json/cpp/build`.
 
-#### CMake构建参数说明
+#### CMake Build Parameters Explanation
 
-像刚才我们勾选/填写的那些CMake选项（`WITH_GPU`、`OPENCV_DIR`、`PADDLE_LIB`这些），它们是CMake的参数。你也可以自行参考并修改这些参数。
+Like the CMake options we checked/filled in earlier (`WITH_GPU`, `OPENCV_DIR`, `PADDLE_LIB`), they are CMake parameters. You can also refer to and modify these parameters yourself.
 
-以下参数是一些编译参数：
+The following are some compilation parameters:
 
-| 参数名            | 描述                                                                                                                                     |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `WITH_MKL`        | 使用MKL或OpenBlas，默认使用MKL。                                                                                                         |
-| `WITH_GPU`        | 使用GPU或CPU，默认使用CPU。                                                                                                              |
-| `WITH_STATIC_LIB` | 编译成static library或shared library，默认编译成static library。（Linux下这个参数设置成 `ON` 时无法编译，所以它是强行设置成 `OFF` 的。） |
-| `WITH_TENSORRT`   | 使用TensorRT，默认关闭。                                                                                                                 |
+| Parameter Name    | Description                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `WITH_MKL`        | Use MKL or OpenBlas, default use MKL.                                                                                                    |
+| `WITH_GPU`        | Use GPU or CPU, default use CPU.                                                                                                         |
+| `WITH_STATIC_LIB` | Compile into static library or shared library, default compile into static library. (On Linux, this parameter cannot be compiled when set to `ON`, so it is forcibly set to `OFF`.) |
+| `WITH_TENSORRT`   | Use TensorRT, default off.                                                                                                               |
 
-以下是一些依赖库路径相关参数。除了 `PADDLE_LIB` 是必填的以外其他的视情况而定。
+The following are some dependency library path related parameters. Except for `PADDLE_LIB` which is required, others depend on the situation.
 
-| 参数名         | 描述                         |
+| Parameter Name | Description                  |
 | -------------- | ---------------------------- |
-| `PADDLE_LIB`   | paddle_inference的路径       |
-| `OPENCV_DIR`   | 库的路径                     |
-| `CUDA_LIB`     | 库的路径                     |
-| `CUDNN_LIB`    | 库的路径                     |
-| `TENSORRT_DIR` | 使用TensorRT编译并设置其路径 |
+| `PADDLE_LIB`   | Path to paddle_inference     |
+| `OPENCV_DIR`   | Path to library              |
+| `CUDA_LIB`     | Path to library              |
+| `CUDNN_LIB`    | Path to library              |
+| `TENSORRT_DIR` | Use TensorRT compile and set its path |
 
 > [!NOTE]
-> * 您也可以通过设置环境变量 `OpenCV_DIR` 来设置OpenCV库的路径，注意变量名大小写敏感。
+> * You can also set the OpenCV library path by setting the environment variable `OpenCV_DIR`, note that the variable name is case sensitive.
 
-以下是一些PaddleOCR-json功能相关参数。
+The following are some PaddleOCR-json function related parameters.
 
-| 参数名                   | 描述                                 |
-| ------------------------ | ------------------------------------ |
-| `ENABLE_CLIPBOARD`       | 启用剪贴板功能。默认关闭。           |
-| `ENABLE_REMOTE_EXIT`     | 启用远程关停引擎进程命令。默认开启。 |
-| `ENABLE_JSON_IMAGE_PATH` | 启用json命令image_path。默认开启。   |
+| Parameter Name            | Description                              |
+| ------------------------- | ---------------------------------------- |
+| `ENABLE_CLIPBOARD`        | Enable clipboard function. Default off.  |
+| `ENABLE_REMOTE_EXIT`      | Enable remote shutdown engine process command. Default on. |
+| `ENABLE_JSON_IMAGE_PATH`  | Enable json command image_path. Default on. |
 
 > [!NOTE]
-> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 “[传入 `exit` 关停引擎进程](../docs/详细使用指南.md#4-关闭引擎进程)” 的功能。
-> * `ENABLE_JSON_IMAGE_PATH`: 这个参数控制着 “使用`{"image_path":""}`指定路径” 的功能。
+> * `ENABLE_REMOTE_EXIT`: This parameter controls the "[pass `exit` to shutdown engine process](../docs/Detailed-Usage-Guide.md#4-shutdown-engine-process)" function.
+> * `ENABLE_JSON_IMAGE_PATH`: This parameter controls the "use `{"image_path":""}` to specify path" function.
 
-#### 关于剪贴板读取
+#### About Clipboard Reading
 
-在Windows下，从剪贴板中读取数据的功能存在，不过已经弃用。所有剪贴板相关的代码是默认不编译的。如果你需要PaddleOCR-json去读取剪贴板，请自行修改CMake参数 `ENABLE_CLIPBOARD=ON` 并重新编译。
+On Windows, the function to read data from the clipboard exists, but has been deprecated. All clipboard-related code is not compiled by default. If you need PaddleOCR-json to read the clipboard, please modify the CMake parameter `ENABLE_CLIPBOARD=ON` and recompile yourself.
 
-#### 构建失败？
+#### Build Failed?
 
-如果报错中含有 `Could NOT find Git (missing: GIT_EXECUTABLE)` ，原因是电脑上未安装Git，请先安装（尽量装在默认目录下）。
+If the error contains `Could NOT find Git (missing: GIT_EXECUTABLE)`, the reason is that Git is not installed on the computer, please install it first (preferably in the default directory).
 
-如果报错中含有 `unable to access 'https://github.com/LDOUBLEV/AutoLog.git/': gnutls_handshake() failed: The TLS connection was non-properly terminated.` ，原因是网络问题，请挂全局科学上网。如果没有科学，那么可尝试将 `deploy/cpp_infer/external-cmake/auto-log.cmake` 中的github地址改为 `https://gitee.com/Double_V/AutoLog` 。
+If the error contains `unable to access 'https://github.com/LDOUBLEV/AutoLog.git/': gnutls_handshake() failed: The TLS connection was non-properly terminated.`, the reason is network problem, please use global proxy. If no proxy, you can try changing the github address in `deploy/cpp_infer/external-cmake/auto-log.cmake` to `https://gitee.com/Double_V/AutoLog`.
 
-其他原因，请确认您操作的步骤与本文一致，尤其是点击按钮的先后顺序。
+For other reasons, please confirm that your operation steps are consistent with this article, especially the order of clicking buttons.
 
-## 3. 配置项目
+## 3. Configure Project
 
-1. 回到工程目录下的build文件夹，打开 `PaddleOCR-json.sln` 。**将Debug改为Release**。
+1. Go back to the build folder under the project directory, open `PaddleOCR-json.sln`. **Change Debug to Release**.
 
 ![](docs/imgs/b5.png)
 
-2. 调整项目设置。
+2. Adjust project settings.
 
-- 解决方案管理器 → **ALL_BUILD** → 右键 → 属性，进行修改：
-  - 常规 → 输出目录：`$(ProjectDir)\bin\Release`
-  - 调试 → 命令：`$(ProjectDir)\bin\Release\PaddleOCR-json.exe`
-  - 调试 → 工作目录：`$(ProjectDir)\bin\Release`
-- 解决方案管理器 → **PaddleOCR-json** → 右键 → 属性，进行修改：
-  - 常规 → 输出目录：`$(ProjectDir)\bin\Release`
+- Solution Explorer → **ALL_BUILD** → Right-click → Properties, modify:
+  - General → Output Directory: `$(ProjectDir)\bin\Release`
+  - Debugging → Command: `$(ProjectDir)\bin\Release\PaddleOCR-json.exe`
+  - Debugging → Working Directory: `$(ProjectDir)\bin\Release`
+- Solution Explorer → **PaddleOCR-json** → Right-click → Properties, modify:
+  - General → Output Directory: `$(ProjectDir)\bin\Release`
 
 ![](docs/imgs/b6.png)
 
-3. 按F5编译。如果输出类似 `生成：成功4个，失败0个……` 的语句，然后弹出一个控制台窗口，并报错 `找不到 opencv_world***.dll` ，那么**编译正常**。你能在 `build/bin/Release` 下找到生成的 `PaddleOCR-json.exe` 。
+3. Press F5 to compile. If the output is similar to `Build: 4 succeeded, 0 failed……`, and then a console window pops up and reports an error `Cannot find opencv_world***.dll`, then **compilation is normal**. You can find the generated `PaddleOCR-json.exe` in `build/bin/Release`.
 
 ![](docs/imgs/b7.png)
 
 > [!TIP]
-> 如果编译时，报了大量的语法错误，如：
+> If during compilation, a lot of syntax errors are reported, such as:
 > ```
-> C2447 "{"缺少函数标题
-> C2059 语法错误："if"
-> C2143 语法错误：缺少";"
-> …………等等
+> C2447 "{" missing function header
+> C2059 syntax error: "if"
+> C2143 syntax error: missing ";"
+> …………etc
 > ```
-> 那么可能是源代码文件的换行符编码问题。  
-> 解决方法一：通过`git clone`下载本仓库代码，而不要直接在Github下载zip文件包。  
-> 解决方法二：批量将所有`.h`和`.cpp`文件的 [换行符转换为CRLF](https://www.bing.com/search?q=%E6%89%B9%E9%87%8F%E8%BD%AC%E6%8D%A2+LF+%E5%92%8C+CRLF) 。
+> Then it may be a problem with the line break encoding of the source code files.  
+> Solution 1: Download the repository code through `git clone`, do not directly download the zip package from Github.  
+> Solution 2: Batch convert the line breaks of all `.h` and `.cpp` files to [CRLF](https://www.bing.com/search?q=%E6%89%B9%E9%87%8F%E8%BD%AC%E6%8D%A2+LF+%E5%92%8C+CRLF).
 
-4. 拷贝必要的运行库。将以下文件拷贝到 `build/bin/Release` 文件夹下。
+4. Copy the necessary runtime libraries. Copy the following files to the `build/bin/Release` folder.
 
 - `opencv_world***.dll`: `PaddleOCR-json/cpp/.source/opencv/build/x64/vc16/bin/opencv_world***.dll`
 
-> 当然，你也可以直接将 `opencv` 的运行库放到Windows的 `PATH` 环境变量中。参考[这篇文档](https://cloud.baidu.com/article/3297806)，把路径 `opencv/build/x64/vc16/bin/` 加入 `PATH`。这样就不需要拷贝 `opencv` 运行库了。
+> Of course, you can also directly put the `opencv` runtime library into the Windows `PATH` environment variable. Refer to [this document](https://cloud.baidu.com/article/3297806), add the path `opencv/build/x64/vc16/bin/` to `PATH`. This way, you don't need to copy the `opencv` runtime library.
 
-5. 拷贝模型库。将 `.source` 中的 `models` 整个拷贝到 `build/bin/Release` 文件夹下。
+5. Copy the model library. Copy the entire `models` from `.source` to the `build/bin/Release` folder.
 
-6. 在`build/bin/Release`下，Shift+右键，在此处打开终端（或PowerShell），输入 `./PaddleOCR-json.exe` 。如果输出下列文字，就正常。
+6. In `build/bin/Release`, Shift+Right-click, open terminal (or PowerShell) here, enter `./PaddleOCR-json.exe`. If the following text is output, it's normal.
 
 ```
 OCR anonymous pipe mode.
@@ -184,37 +182,37 @@ OCR init time: 0.62887s
 OCR init completed.
 ```
 
-如果你需要移植其他平台，可以参考文档 [移植指南](docs/Migration-Guide.md)
+If you need to port to other platforms, you can refer to the document [Porting Guide](docs/Migration-Guide.md)
 
-## 4. 安装
+## 4. Installation
 
-你可以使用CMake来安装PaddleOCR-json。在`cpp`下，Shift+右键，在此处打开终端（或PowerShell），运行下面这条命令。
+You can use CMake to install PaddleOCR-json. Under `cpp`, Shift+Right-click, open terminal (or PowerShell) here, run the following command.
 
 ```sh
 cmake --install build
 ```
 
-CMake会将 `build` 文件夹下的可执行文件和运行库给安装到 `build/install/bin` 文件夹下。CMake无法在Windows下把软件安装到系统文件夹中，不过你可以将文件夹 `cpp/build/install/bin` 添加到Windows的 `PATH` 环境变量中。参考[这篇文档](https://cloud.baidu.com/article/3297806)。
+CMake will install the executable files and runtime libraries from the `build` folder to the `build/install/bin` folder. CMake cannot install software to the system folder on Windows, but you can add the folder `cpp/build/install/bin` to the Windows `PATH` environment variable. Refer to [this document](https://cloud.baidu.com/article/3297806).
 
-如果你希望安装到指定位置，你可以为上面这条命令加上参数 `--prefix /安装路径/` 来指定一个安装路径。比如 `--prefix build/install` 会将所有的文件都安装到 `build/install` 文件夹下。
+If you want to install to a specified location, you can add the parameter `--prefix /installation/path/` to the above command to specify an installation path. For example, `--prefix build/install` will install all files to the `build/install` folder.
 
-## 5. 切换语言/模型库/预设
+## 5. Switch Language/Model Library/Preset
 
-可通过启动时的命令行参数，指定使用模型库或者预设。
+You can specify the model library or preset through command line parameters at startup.
 
-| 参数               | 说明                                                                         |
-| ------------------ | ---------------------------------------------------------------------------- |
-| det_model_dir      | 文本检测模型库路径。所有语言都能使用 `models/ch_PP-OCRv4_det_infer`          |
-| cls_model_dir      | 方向分类模型库路径。所有语言都能使用 `models/ch_ppocr_mobile_v2.0_cls_infer` |
-| rec_model_dir      | 文本识别模型库路径。不同语言应该使用不同的识别库。                           |
-| rec_char_dict_path | 文本识别模型库对应的字典文件路径。                                           |
-| rec_img_h          | 文本识别模型特殊参数。V2模型需手动设为32，V3/V4模型无需设置。                |
+| Parameter           | Description                                                                 |
+| ------------------- | --------------------------------------------------------------------------- |
+| det_model_dir       | Text detection model library path. All languages can use `models/ch_PP-OCRv4_det_infer` |
+| cls_model_dir       | Direction classification model library path. All languages can use `models/ch_ppocr_mobile_v2.0_cls_infer` |
+| rec_model_dir       | Text recognition model library path. Different languages should use different recognition libraries. |
+| rec_char_dict_path  | Dictionary file path corresponding to the text recognition model library. |
+| rec_img_h           | Special parameter for text recognition model. V2 model needs to be manually set to 32, V3/V4 model does not need to be set. |
 
-`det`, `cls`, `rec` 支持使用PP-OCR系列官方模型，或自己训练的符合PP规范的模型。支持 V2~V4 模型。
+`det`, `cls`, `rec` support using PP-OCR series official models, or self-trained models that conform to PP specifications. Support V2~V4 models.
 
-路径建议填相对路径，根为 PaddleOCR-json 目录。假设模型都存放在 `models` 目录中，那么可以设定这样的参数：
+It is recommended to fill in relative paths, with PaddleOCR-json directory as root. Assuming all models are stored in the `models` directory, then you can set parameters like this:
 
-（Linux下， `PaddleOCR-json.exe` 换成 `run.sh`）
+(On Linux, replace `PaddleOCR-json.exe` with `run.sh`)
 
 ```sh
 PaddleOCR-json.exe \
@@ -224,67 +222,67 @@ PaddleOCR-json.exe \
     --rec_char_dict_path=models/dict_chinese.txt
 ```
 
-也可以将上述参数写进一个txt里，格式如：`config_chinese.txt`
+You can also write the above parameters into a txt, format like: `config_chinese.txt`
 
 ```sh
-# 这是单行注释
+# This is a single line comment
 
-# det 检测模型库
+# det detection model library
 det_model_dir models/ch_PP-OCRv4_det_infer
-# cls 方向分类器库
+# cls direction classifier library
 cls_model_dir models/ch_ppocr_mobile_v2.0_cls_infer
-# rec 识别模型库
+# rec recognition model library
 rec_model_dir models/ch_PP-OCRv4_rec_infer
-# 字典路径
+# dictionary path
 rec_char_dict_path models/dict_chinese.txt
 ```
 
-然后，将该txt传入 `config_path` 参数中：
+Then, pass this txt into the `config_path` parameter:
 
 ```sh
 PaddleOCR-json.exe --config_path=models/config_chinese.txt
 ```
 
-我们提供的 `model.zip` 中已经包含了多种语言的预设文件：
+The `model.zip` we provide already contains preset files for multiple languages:
 
-| 语言     | 预设文件                        | 模型版本 |
-| -------- | ------------------------------- | -------- |
-| 简体中文 | `models/config_chinese.txt`     | V4       |
-| English  | `models/config_en.txt`          | V4       |
-| 繁體中文 | `models/config_chinese_cht.txt` | V2       |
-| 日本語   | `models/config_japan.txt`       | V4       |
-| 한국어   | `models/config_korean.txt`      | V4       |
+| Language  | Preset File                    | Model Version |
+| --------- | ------------------------------ | ------------- |
+| Simplified Chinese | `models/config_chinese.txt`    | V4            |
+| English   | `models/config_en.txt`         | V4            |
+| Traditional Chinese | `models/config_chinese_cht.txt`| V2            |
+| 日本語    | `models/config_japan.txt`      | V4            |
+| 한국어    | `models/config_korean.txt`     | V4            |
 
-（注：繁體中文使用V2版本模型，因为V2竖排识别的准确度比后续版本更好。）
+(Note: Traditional Chinese uses V2 version model because V2 vertical recognition accuracy is better than subsequent versions.)
 
-更多 PP-OCR 系列官方模型下载： https://github.com/PaddlePaddle/PaddleOCR/blob/main/doc/doc_ch/models_list.md
+More PP-OCR series official model downloads: https://github.com/PaddlePaddle/PaddleOCR/blob/main/doc/doc_ch/models_list.md
 
-## 6. 其他问题
+## 6. Other Issues
 
-### 关于内存占用
+### About Memory Usage
 
-本项目后端推理库为 `Paddle Inference 3.0.0 beta.1 cpu_mkl` 。比起旧版本，`3.0.0` 大幅优化了内存占用率。进行大批量、连续OCR（约1000张图片）后，内存占用稳定在 1.5G 左右。
+The backend inference library of this project is `Paddle Inference 3.0.0 beta.1 cpu_mkl`. Compared to the old version, `3.0.0` greatly optimizes memory usage. After large batch, continuous OCR (about 1000 images), memory usage stabilizes at around 1.5G.
 
-建议至少在 4G 内存的机器上使用本项目，预留 2G 空闲内存给本项目。
+It is recommended to use this project on machines with at least 4G memory, reserve 2G free memory for this project.
 
-如果有必要在 2G 内存的机器上使用本项目，建议添加启动参数 `--cpu_mem=1200` ，让 PaddleOCR-json 在内存占用超过 1200MB 时执行自动内存清理。
+If necessary to use this project on 2G memory machines, it is recommended to add startup parameter `--cpu_mem=1200`, let PaddleOCR-json perform automatic memory cleanup when memory usage exceeds 1200MB.
 
-- `--cpu_mem` 是 PaddleOCR-json v1.4.1 新增参数，v1.4.0或以前的版本无法使用。
-- `--cpu_mem` 不建议低于 `1000` ，否则频繁清理内存，可能影响OCR效率。您也可以使用隔壁 [RapidOCR-json](https://github.com/hiroi-sora/RapidOCR-json) ，对低配置机器更友好。
+- `--cpu_mem` is a new parameter added in PaddleOCR-json v1.4.1, v1.4.0 or earlier versions cannot use it.
+- `--cpu_mem` is not recommended to be lower than `1000`, otherwise frequent memory cleanup may affect OCR efficiency. You can also use the neighboring [RapidOCR-json](https://github.com/hiroi-sora/RapidOCR-json), which is more friendly to low-configuration machines.
 
-另外，本项目默认不会在空闲时自动释放内存。假设当前占用了 1500MB ，那么接下来就算不进行OCR，引擎也会永远保持该内存占用，直到达到 `--cpu_mem` 设定的上界，自动执行清理。
+In addition, this project does not automatically release memory when idle by default. Assuming it currently occupies 1500MB, then even if no OCR is performed next, the engine will always maintain this memory usage until it reaches the upper limit set by `--cpu_mem`, and automatically performs cleanup.
 
-如果你想让引擎在空闲时不要占用那么多内存，可行的方法有：
+If you want the engine to not occupy so much memory when idle, feasible methods are:
 
-1. 外部重启引擎。使用一个程序/脚本来管理引擎的输入输出。如果持续一段时间没有活动，则kill掉引擎进程，重新启动一个。Umi-OCR就是这么做的。
-2. 从引擎内部来清理内存。在分支 `release/1.4.0_autoclean` 里面是一个修改过的引擎。新增了一个参数 `--auto_memory_cleanup`，它会开启一条线程来检查引擎状态，然后在其闲置时释放内存。
+1. External restart engine. Use a program/script to manage the engine's input and output. If there is no activity for a period of time, kill the engine process and restart one. Umi-OCR does this.
+2. Clean up memory from inside the engine. In the branch `release/1.4.0_autoclean` there is a modified engine. A new parameter `--auto_memory_cleanup` is added, which will start a thread to check the engine status, and release memory when it is idle.
 
 > [!CAUTION]
-> **无论是 `--auto_memory_cleanup` 还是 `--cpu_mem` 进行一次清理，内存占用仍会残留大约 300~600MB 。这是 Paddle Inference 推理库实例的占用下限。如果想空闲时接近0占用，只能使用方法1，外部重启引擎进程。**
+> **Whether it is `--auto_memory_cleanup` or `--cpu_mem` performing a cleanup, memory usage will still remain about 300~600MB. This is the lower limit of Paddle Inference inference library instance occupancy. If you want close to 0 occupancy when idle, you can only use method 1, external restart engine process.**
 
-更多细节请看这些Issue：[#43](https://github.com/hiroi-sora/PaddleOCR-json/issues/43)、[#90](https://github.com/hiroi-sora/PaddleOCR-json/issues/90)、[#135](https://github.com/hiroi-sora/PaddleOCR-json/issues/135)
+More details please see these Issues: [#43](https://github.com/hiroi-sora/PaddleOCR-json/issues/43), [#90](https://github.com/hiroi-sora/PaddleOCR-json/issues/90), [#135](https://github.com/hiroi-sora/PaddleOCR-json/issues/135)
 
-> 如果你打算使用上面提到的方法2，请拉取并切换到 `release/1.4.0_autoclean` 分支：  
+> If you plan to use method 2 mentioned above, please pull and switch to the `release/1.4.0_autoclean` branch:  
 > ```sh
 > git fetch origin release/1.4.0_autoclean
 > git checkout -b release/1.4.0_autoclean origin/release/1.4.0_autoclean

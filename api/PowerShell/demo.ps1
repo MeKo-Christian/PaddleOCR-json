@@ -11,8 +11,8 @@ while (1) {
         $prompt_str += "4:Clipboard`n"
     }
     $prompt_str += "Others to exit"
-    $选择 = Read-Host $prompt_str
-    switch($选择){
+    $choice = Read-Host $prompt_str
+    switch($choice){
         1{
             # Recognize image
             $imgPath = read-host "Please enter image path"

@@ -54,7 +54,7 @@ Currently allows two modes to call the engine:
 
 The intention of this parameter is to automatically handle relative path errors in different working paths. When the API starts the engine process, it sets the working path to the engine's parent folder. If the user directly passes the `models_path` path to the `argument` dictionary, path errors can easily occur. The `modelsPath` parameter will first convert the input path to an absolute path based on the current Python running path, then input it to the engine in the form of the `models_path` parameter, thereby preventing path errors. Of course, you can also override this path by inputting a new `models_path` parameter into the `argument` dictionary.
 
-[More details about the `models_path` parameter can be found here](../../README.md#常用配置参数说明).
+[More details about the `models_path` parameter can be found here](../../README.md#common-configuration-parameters-explanation).
 
 **Return Value:**
 
@@ -97,7 +97,7 @@ ocr = GetOcrApi(r"remote://192.168.10.1:1234", ipcMode="socket")
 
 Here we use a URI to replace the engine location, indicating the server's IP and port. Then use the parameter `ipcMode` to use socket mode (cannot use pipe mode). In this case, inputting the `argument` parameter will have no effect, because this Python script does not start the engine process.
 
-In this deployment scenario, we recommend using the `runBase64()` or `runBytes()` methods to transmit files, as the `run()` method's path transmission method is prone to errors. Of course, you can also disable the server's [path transmission json command image_path](../../cpp/README.md#cmake构建参数).
+In this deployment scenario, we recommend using the `runBase64()` or `runBytes()` methods to transmit files, as the `run()` method's path transmission method is prone to errors. Of course, you can also disable the server's [path transmission json command image_path](../../cpp/README.md#cmake-build-parameters).
 
 ### Step 2: Recognize Images
 

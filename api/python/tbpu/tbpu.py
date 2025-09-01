@@ -1,22 +1,22 @@
 # tbpu : text block processing unit
-# 文块处理器的基类。
-# OCR返回的结果中，一项包含文字、包围盒、置信度的元素，称为一个“文块” - text block 。
-# 文块不一定是完整的一句话或一个段落。反之，一般是零散的文字。
-# 一个OCR结果常由多个文块组成。
-# 文块处理器就是：将传入的多个文块进行处理，比如合并、排序、删除文块。
+# Base class for text block processors.
+# In OCR results, an element containing text, bounding box, and confidence is called a "text block".
+# A text block is not necessarily a complete sentence or paragraph. On the contrary, it is usually scattered text.
+# An OCR result often consists of multiple text blocks.
+# A text block processor: processes multiple input text blocks, such as merging, sorting, deleting text blocks.
 
 
 class Tbpu:
     def __init__(self):
-        self.tbpuName = "文块处理单元-未知"
+        self.tbpuName = "Text block processing unit - unknown"
 
     def run(self, textBlocks):
-        """输入：textBlocks文块列表。例：\n
+        """Input: textBlocks list. Example:\n
         [
-            {'box': [[29, 19], [172, 19], [172, 44], [29, 44]], 'score': 0.89, 'text': '文本111'},
-            {'box': [[29, 60], [161, 60], [161, 86], [29, 86]], 'score': 0.75, 'text': '文本222'},
+            {'box': [[29, 19], [172, 19], [172, 44], [29, 44]], 'score': 0.89, 'text': 'text111'},
+            {'box': [[29, 60], [161, 60], [161, 86], [29, 86]], 'score': 0.75, 'text': 'text222'},
         ]
-        输出：排序后的textBlocks文块列表，每个块增加键：
-        'end' 结尾间隔符
+        Output: Sorted textBlocks list, each block adds key:
+        'end' ending separator
         """
         return textBlocks

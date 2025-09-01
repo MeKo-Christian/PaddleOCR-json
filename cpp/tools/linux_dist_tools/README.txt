@@ -1,28 +1,28 @@
-使用手册
+Usage Manual
 
-感谢下载使用PaddleOCR-json引擎（https://github.com/hiroi-sora/PaddleOCR-json）。
+Thanks for downloading & using PaddleOCR-json engine (https://github.com/hiroi-sora/PaddleOCR-json).
 
-你可以选择以下任意一种方式运行本引擎。
+You can choose any of following methods to run the engine.
 
-# 无安装直接运行引擎
+# No install, run engine directly
 
-只需运行 “run.sh” 脚本即可。
+You can use "run.sh" script to run it.
 
-# 安装到系统环境再运行
+# Install to system environment and then run engine
 
-先运行 “install_env.sh” 脚本来安装引擎到系统环境。
+First run "install_env.sh" script to install engine to your system environment.
 
-下一步运行 “source ~/.bashrc” 来刷新系统环境。
+Next run "source ~/.bashrc" to refresh your system environment.
 
-之后就可以直接使用 “PaddleOCR-json” 来运行引擎了。
+Finally, you can use "PaddleOCR-json" to run engine.
 
-# 错误排查
+# Troubleshooting
 
-如果出现以下错误：
+If following error occurs:
 
 PaddleOCR-json: error while loading shared libraries: libiomp5.so
 
-这代表着你的系统里缺少了一个运行依赖库 “libiomp5.so” ，请自行安装所需的依赖库到系统。
+This indicates that your system is missing a runtime dependency library "libiomp5.so", please install all the dependency libraries to your system.
 
 
 

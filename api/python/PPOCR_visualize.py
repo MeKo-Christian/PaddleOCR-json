@@ -1,24 +1,24 @@
-# 将 PaddleOCR-json 结果可视化表现
-# 项目主页：
+# Visualize PaddleOCR-json results
+# Project homepage:
 # https://github.com/hiroi-sora/PaddleOCR-json
 from PIL import Image, ImageDraw, ImageFont
 import math
 
 
 class visualize:
-    """可视化"""
+    """Visualization"""
 
-    # ================================ 静态方法 ================================
+    # ================================ Static Methods ================================
 
     @staticmethod
     def createBox(textBlocks, size, fill="#00500040", outline="#11ff22", width=6):
-        """创建包围盒图层，返回PIL Image对象。\n
-        :textBlocks: 文本块列表。\n
-        :size: 图片尺寸。\n
-        以下为可选字段：（颜色为十六进制6位RGB或8位RGBA字符串，如 #112233ff）\n
-        :fill: 包围盒填充颜色。\n
-        :outline: 包围盒轮廓颜色。\n
-        :width: 包围盒轮廓粗细，像素。
+        """Create bounding box layer, return PIL Image object.\n
+        :textBlocks: Text block list.\n
+        :size: Image size.\n
+        The following are optional fields: (colors are 6-digit RGB or 8-digit RGBA hex strings, e.g. #112233ff)\n
+        :fill: Bounding box fill color.\n
+        :outline: Bounding box outline color.\n
+        :width: Bounding box outline thickness, in pixels.
         """
         img = Image.new("RGBA", size, 0)
         draw = ImageDraw.Draw(img)
@@ -40,26 +40,26 @@ class visualize:
         ttfScale=0.9,
         fill="#ff0000",
     ):
-        """创建文字图层，返回PIL Image对象。\n
-        :textBlocks: 文本块列表。\n
-        :size: 图片尺寸。\n
-        以下为可选字段：\n
-        :ttfPath: 字体文件路径。默认为微软雅黑，若不存在此字体会报错。\n
-        :ttfScale: 字体大小整体缩放系数，应在1附近。\n
-        :fill: 文字颜色，十六进制6位RGB或8位RGBA字符串，如 #112233ff。\n
+        """Create text layer, return PIL Image object.\n
+        :textBlocks: Text block list.\n
+        :size: Image size.\n
+        The following are optional fields:\n
+        :ttfPath: Font file path. Defaults to Microsoft YaHei, will error if font doesn't exist.\n
+        :ttfScale: Font size overall scaling factor, should be around 1.\n
+        :fill: Text color, 6-digit RGB or 8-digit RGBA hex string, e.g. #112233ff.\n
         """
         img = Image.new("RGBA", size, 0)
         draw = ImageDraw.Draw(img)
-        ttfDict = {}  # 缓存不同大小的字体对象
+        ttfDict = {}  # Cache font objects of different sizes
         for tb in textBlocks:
             text = tb["text"]
-            xy = tuple(tb["box"][0])  # 左上角坐标
-            xy1 = tb["box"][3]  # 左下角坐标# 行高
+            xy = tuple(tb["box"][0])  # Top-left coordinate
+            xy1 = tb["box"][3]  # Bottom-left coordinate # Line height
             hight = round(
                 math.sqrt(((xy[0] - xy1[0]) ** 2) + ((xy[1] - xy1[1]) ** 2)) * ttfScale
             )
             if hight not in ttfDict:
-                ttfDict[hight] = ImageFont.truetype(ttfPath, hight)  # 创建新大小的字体
+                ttfDict[hight] = ImageFont.truetype(ttfPath, hight)  # Create new size font
             draw.text(xy, text, font=ttfDict[hight], fill=fill)
         return img
 
@@ -72,30 +72,30 @@ class visualize:
         fill="#2233ff",
         bg="#ffffffe0",
     ):
-        """创建序号图层，返回PIL Image对象。\n
-        :textBlocks: 文本块列表。\n
-        :size: 图片尺寸。\n
-        以下为可选字段：\n
-        :ttfPath: 字体文件路径。默认为微软雅黑，若不存在此字体会报错。\n
-        :ttfSize: 字体大小。\n
-        :fill: 文字颜色，十六进制6位RGB或8位RGBA字符串，如 #112233ff。\n
+        """Create sequence number layer, return PIL Image object.\n
+        :textBlocks: Text block list.\n
+        :size: Image size.\n
+        The following are optional fields:\n
+        :ttfPath: Font file path. Defaults to Microsoft YaHei, will error if font doesn't exist.\n
+        :ttfSize: Font size.\n
+        :fill: Text color, 6-digit RGB or 8-digit RGBA hex string, e.g. #112233ff.\n
         """
         img = Image.new("RGBA", size, 0)
         draw = ImageDraw.Draw(img)
-        ttf = ImageFont.truetype(ttfPath, ttfSize)  # 字体
+        ttf = ImageFont.truetype(ttfPath, ttfSize)  # Font
         for index, tb in enumerate(textBlocks):
             text = f"{index+1}"
-            xy = tuple(tb["box"][0])  # 左上角坐标
-            x_, y_, w, h = ttf.getbbox(text)  # 获取宽高。只需要w和h
+            xy = tuple(tb["box"][0])  # Top-left coordinate
+            x_, y_, w, h = ttf.getbbox(text)  # Get width and height. Only need w and h
             w *= 1.1
             h *= 1.1
-            draw.rectangle((xy, (xy[0] + w, xy[1] + h)), fill=bg, width=0)  # 背景矩形
-            draw.text(xy, text, font=ttf, fill=fill)  # 文字
+            draw.rectangle((xy, (xy[0] + w, xy[1] + h)), fill=bg, width=0)  # Background rectangle
+            draw.text(xy, text, font=ttf, fill=fill)  # Text
         return img
 
     @staticmethod
     def createContrast(img1, img2):
-        """左右拼合两个图片，创建对比图层，返回PIL Image对象。"""
+        """Concatenate two images side by side to create contrast layer, return PIL Image object."""
         size = (img1.size[0] + img2.size[0], max(img1.size[1], img2.size[1]))
         img = Image.new("RGBA", size, 0)
         img.paste(img1, (0, 0))
@@ -104,29 +104,29 @@ class visualize:
 
     @staticmethod
     def composite(img1, img2):
-        """传入两个PIL Image对象（RGBA格式），以img1为底，将img2叠加在其上
-        返回生成的图片"""
+        """Pass two PIL Image objects (RGBA format), use img1 as base, overlay img2 on top
+        Return the generated image"""
         return Image.alpha_composite(img1, img2)
 
-    # ================================ 快捷接口 ================================
+    # ================================ Quick Interface ================================
 
     def __init__(self, textBlocks, imagePath):
-        """创建可视化对象。\n
-        :textBlocks: 文本块列表，即OCR返回的data部分\n
-        :imagePath: 对应的图片路径。
+        """Create visualization object.\n
+        :textBlocks: Text block list, i.e. the data part returned by OCR\n
+        :imagePath: Corresponding image path.
         """
-        self.imgSource = Image.open(imagePath).convert("RGBA")  # 原始图片图层
+        self.imgSource = Image.open(imagePath).convert("RGBA")  # Original image layer
         self.size = self.imgSource.size
-        self.imgBox = self.createBox(textBlocks, self.size)  # 包围盒图层
-        self.imgText = self.createText(textBlocks, self.size)  # 文字图层
-        self.imgOrder = self.createOrder(textBlocks, self.size)  # 序号图层
+        self.imgBox = self.createBox(textBlocks, self.size)  # Bounding box layer
+        self.imgText = self.createText(textBlocks, self.size)  # Text layer
+        self.imgOrder = self.createOrder(textBlocks, self.size)  # Sequence number layer
 
     def get(self, isBox=True, isText=False, isOrder=False, isSource=True):
-        """返回合成可视化结果的PIL Image图像。\n
-        :isBox: T时返回包围盒图层。\n
-        :isText: T时返回文字图层。\n
-        :isOrder: T时返回序号图层。\n
-        :isSource: T时返回原图。F时返回透明背景的纯可视化结果。\n
+        """Return synthesized visualization result PIL Image.\n
+        :isBox: T to return bounding box layer.\n
+        :isText: T to return text layer.\n
+        :isOrder: T to return sequence number layer.\n
+        :isSource: T to return original image. F returns pure visualization result with transparent background.\n
         """
         img = Image.new("RGBA", self.size, 0)
         flags = (isSource, isBox, isText, isOrder)
@@ -138,22 +138,22 @@ class visualize:
         return img
 
     def show(self, isBox=True, isText=False, isOrder=False, isSource=True):
-        """显示可视化结果图像。\n
-        :isBox: T时返回包围盒图层。\n
-        :isText: T时返回文字图层。\n
-        :isOrder: T时返回序号图层。\n
-        :isSource: T时返回原图。F时返回透明背景的纯可视化结果。\n
+        """Display visualization result image.\n
+        :isBox: T to return bounding box layer.\n
+        :isText: T to return text layer.\n
+        :isOrder: T to return sequence number layer.\n
+        :isSource: T to return original image. F returns pure visualization result with transparent background.\n
         """
         img = self.get(isBox, isText, isOrder, isSource)
         img.show()
 
     def save(self, path="", isBox=True, isText=False, isOrder=False, isSource=True):
-        """保存可视化结果图像。\n
-        :path: 保存路径。\n
-        :isBox: T时返回包围盒图层。\n
-        :isText: T时返回文字图层。\n
-        :isOrder: T时返回序号图层。\n
-        :isSource: T时返回原图。F时返回透明背景的纯可视化结果。\n
+        """Save visualization result image.\n
+        :path: Save path.\n
+        :isBox: T to return bounding box layer.\n
+        :isText: T to return text layer.\n
+        :isOrder: T to return sequence number layer.\n
+        :isSource: T to return original image. F returns pure visualization result with transparent background.\n
         """
         img = self.get(isBox, isText, isOrder, isSource)
         img.save(path)

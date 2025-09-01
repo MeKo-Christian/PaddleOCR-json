@@ -1,48 +1,48 @@
-# Python API zum Aufrufen von PaddleOCR-json.exe
-# Projekt-Homepage:
+# Python API to call PaddleOCR-json.exe
+# Project Homepage:
 # https://github.com/hiroi-sora/PaddleOCR-json
 
 import os
-import socket  # 套接字
-import atexit  # 退出处理
-import subprocess  # 进程，管道
+import socket  # socket
+import atexit  # exit handling
+import subprocess  # process, pipe
 import re  # regex
 from json import loads as jsonLoads, dumps as jsonDumps
-from sys import platform as sysPlatform  # popen静默模式
-from base64 import b64encode  # base64 编码
+from sys import platform as sysPlatform  # popen silent mode
+from base64 import b64encode  # base64 encoding
 
 
-class PPOCR_pipe:  # 调用OCR（管道模式）
+class PPOCR_pipe:  # Call OCR (pipe mode)
     def __init__(self, exePath: str, modelsPath: str = None, argument: dict = None):
-        """Initialisiere den Erkenner (Pipe-Modus).\n
-        `exePath`: Pfad zum Erkenner `PaddleOCR_json.exe`.\n
-        `modelsPath`: Pfad zum Erkennungsbibliothek `models` Ordner. Wenn None, wird angenommen, dass die Bibliothek im selben Verzeichnis wie der Erkenner ist.\n
-        `argument`: Startparameter, Dictionary `{"key":value}`. Parameterbeschreibung siehe https://github.com/hiroi-sora/PaddleOCR-json
+        """Initialize the recognizer (Pipe mode).\n
+        `exePath`: Path to the recognizer `PaddleOCR_json.exe`.\n
+        `modelsPath`: Path to the recognition library `models` folder. If None, assumes the library is in the same directory as the recognizer.\n
+        `argument`: Startup parameters, dictionary `{"key":value}`. Parameter description see https://github.com/hiroi-sora/PaddleOCR-json
         """
-        # 私有成员变量
+        # Private member variables
         self.__ENABLE_CLIPBOARD = False
 
         exePath = os.path.abspath(exePath)
-        cwd = os.path.abspath(os.path.join(exePath, os.pardir))  # 获取exe父文件夹
+        cwd = os.path.abspath(os.path.join(exePath, os.pardir))  # Get exe parent folder
         cmds = [exePath]
-        # 处理启动参数
+        # Process startup parameters
         if modelsPath is not None:
             if os.path.exists(modelsPath) and os.path.isdir(modelsPath):
                 cmds += ["--models_path", os.path.abspath(modelsPath)]
             else:
                 raise Exception(
-                    f"Input modelsPath doesn't exits or isn't a directory. modelsPath: [{modelsPath}]"
+                    f"Input modelsPath doesn't exist or isn't a directory. modelsPath: [{modelsPath}]"
                 )
         if isinstance(argument, dict):
             for key, value in argument.items():
-                # Popen() 要求输入list里所有的元素都是 str 或 bytes
+                # Popen() requires all elements in the input list to be str or bytes
                 if isinstance(value, bool):
-                    cmds += [f"--{key}={value}"]  # 布尔参数必须键和值连在一起
+                    cmds += [f"--{key}={value}"]  # Boolean parameters must have key and value together
                 elif isinstance(value, str):
                     cmds += [f"--{key}", value]
                 else:
                     cmds += [f"--{key}", str(value)]
-        # 设置子进程启用静默模式，不显示控制台窗口
+        # Set subprocess to enable silent mode, don't display console window
         self.ret = None
         startupinfo = None
         if "win32" in str(sysPlatform).lower():
@@ -51,42 +51,42 @@ class PPOCR_pipe:  # 调用OCR（管道模式）
                 subprocess.CREATE_NEW_CONSOLE | subprocess.STARTF_USESHOWWINDOW
             )
             startupinfo.wShowWindow = subprocess.SW_HIDE
-        self.ret = subprocess.Popen(  # 打开管道
+        self.ret = subprocess.Popen(  # Open pipe
             cmds,
             cwd=cwd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,  # 丢弃stderr的内容
-            startupinfo=startupinfo,  # 开启静默模式
+            stderr=subprocess.DEVNULL,  # Discard stderr content
+            startupinfo=startupinfo,  # Enable silent mode
         )
-        # 启动子进程
+        # Start subprocess
         while True:
-            if not self.ret.poll() == None:  # 子进程已退出，初始化失败
+            if not self.ret.poll() == None:  # Subprocess has exited, initialization failed
                 raise Exception(f"OCR init fail.")
             initStr = self.ret.stdout.readline().decode("utf-8", errors="ignore")
-            if "OCR init completed." in initStr:  # 初始化成功
+            if "OCR init completed." in initStr:  # Initialization successful
                 break
-            elif "OCR clipboard enbaled." in initStr:  # 检测到剪贴板已启用
+            elif "OCR clipboard enbaled." in initStr:  # Detected clipboard enabled
                 self.__ENABLE_CLIPBOARD = True
-        atexit.register(self.exit)  # 注册程序终止时执行强制停止子进程
+        atexit.register(self.exit)  # Register to execute forced stop subprocess when program terminates
 
     def isClipboardEnabled(self) -> bool:
         return self.__ENABLE_CLIPBOARD
 
     def getRunningMode(self) -> str:
-        # 默认管道模式只能运行在本地
+        # Default pipe mode can only run locally
         return "local"
 
     def runDict(self, writeDict: dict):
-        """传入指令字典，发送给引擎进程。\n
-        `writeDict`: 指令字典。\n
-        `return`:  {"code": 识别码, "data": 内容列表或错误信息字符串}\n"""
-        # 检查子进程
+        """Pass instruction dictionary, send to engine process.\n
+        `writeDict`: Instruction dictionary.\n
+        `return`:  {"code": identification code, "data": content list or error message string}\n"""
+        # Check subprocess
         if not self.ret:
-            return {"code": 901, "data": f"引擎实例不存在。"}
+            return {"code": 901, "data": f"Engine instance does not exist."}
         if not self.ret.poll() == None:
-            return {"code": 902, "data": f"子进程已崩溃。"}
-        # 输入信息
+            return {"code": 902, "data": f"Subprocess has crashed."}
+        # Input information
         writeStr = jsonDumps(writeDict, ensure_ascii=True, indent=None) + "\n"
         try:
             self.ret.stdin.write(writeStr.encode("utf-8"))
@@ -94,133 +94,133 @@ class PPOCR_pipe:  # 调用OCR（管道模式）
         except Exception as e:
             return {
                 "code": 902,
-                "data": f"向识别器进程传入指令失败，疑似子进程已崩溃。{e}",
+                "data": f"Failed to pass instruction to recognizer process, suspected subprocess has crashed. {e}",
             }
-        # 获取返回值
+        # Get return value
         try:
             getStr = self.ret.stdout.readline().decode("utf-8", errors="ignore")
         except Exception as e:
-            return {"code": 903, "data": f"读取识别器进程输出值失败。异常信息：[{e}]"}
+            return {"code": 903, "data": f"Failed to read recognizer process output value. Exception info: [{e}]"}
         try:
             return jsonLoads(getStr)
         except Exception as e:
             return {
                 "code": 904,
-                "data": f"识别器输出值反序列化JSON失败。异常信息：[{e}]。原始内容：[{getStr}]",
+                "data": f"Recognizer output value JSON deserialization failed. Exception info: [{e}]. Original content: [{getStr}]",
             }
 
     def run(self, imgPath: str):
-        """对一张本地图片进行文字识别。\n
-        `exePath`: 图片路径。\n
-        `return`:  {"code": 识别码, "data": 内容列表或错误信息字符串}\n"""
+        """Perform text recognition on a local image.\n
+        `exePath`: Image path.\n
+        `return`:  {"code": identification code, "data": content list or error message string}\n"""
         writeDict = {"image_path": imgPath}
         return self.runDict(writeDict)
 
     def runClipboard(self):
-        """立刻对剪贴板第一位的图片进行文字识别。\n
-        `return`:  {"code": 识别码, "data": 内容列表或错误信息字符串}\n"""
+        """Immediately perform text recognition on the first image in clipboard.\n
+        `return`:  {"code": identification code, "data": content list or error message string}\n"""
         if self.__ENABLE_CLIPBOARD:
             return self.run("clipboard")
         else:
-            raise Exception("剪贴板功能不存在或已禁用。")
+            raise Exception("Clipboard function does not exist or is disabled.")
 
     def runBase64(self, imageBase64: str):
-        """对一张编码为base64字符串的图片进行文字识别。\n
-        `imageBase64`: 图片base64字符串。\n
-        `return`:  {"code": 识别码, "data": 内容列表或错误信息字符串}\n"""
+        """Perform text recognition on an image encoded as base64 string.\n
+        `imageBase64`: Image base64 string.\n
+        `return`:  {"code": identification code, "data": content list or error message string}\n"""
         writeDict = {"image_base64": imageBase64}
         return self.runDict(writeDict)
 
     def runBytes(self, imageBytes):
-        """对一张图片的字节流信息进行文字识别。\n
-        `imageBytes`: 图片字节流。\n
-        `return`:  {"code": 识别码, "data": 内容列表或错误信息字符串}\n"""
+        """Perform text recognition on image byte stream information.\n
+        `imageBytes`: Image byte stream.\n
+        `return`:  {"code": identification code, "data": content list or error message string}\n"""
         imageBase64 = b64encode(imageBytes).decode("utf-8")
         return self.runBase64(imageBase64)
 
     def exit(self):
-        """关闭引擎子进程"""
+        """Close engine subprocess"""
         if hasattr(self, "ret"):
             if not self.ret:
                 return
             try:
-                self.ret.kill()  # 关闭子进程
+                self.ret.kill()  # Close subprocess
             except Exception as e:
                 print(f"[Error] ret.kill() {e}")
         self.ret = None
-        atexit.unregister(self.exit)  # 移除退出处理
-        print("###  PPOCR引擎子进程关闭！")
+        atexit.unregister(self.exit)  # Remove exit handling
+        print("###  PPOCR engine subprocess closed!")
 
     @staticmethod
     def printResult(res: dict):
-        """用于调试，格式化打印识别结果。\n
-        `res`: OCR识别结果。"""
+        """For debugging, format and print recognition results.\n
+        `res`: OCR recognition result."""
 
-        # 识别成功
+        # Recognition successful
         if res["code"] == 100:
             index = 1
             for line in res["data"]:
                 print(
-                    f"{index}-置信度：{round(line['score'], 2)}，文本：{line['text']}",
+                    f"{index}-Confidence: {round(line['score'], 2)}, Text: {line['text']}",
                     end="\\n\n" if line.get("end", "") == "\n" else "\n",
                 )
                 index += 1
         elif res["code"] == 100:
-            print("图片中未识别出文字。")
+            print("No text recognized in image.")
         else:
-            print(f"图片识别失败。错误码：{res['code']}，错误信息：{res['data']}")
+            print(f"Image recognition failed. Error code: {res['code']}, Error message: {res['data']}")
 
     def __del__(self):
         self.exit()
 
 
 class PPOCR_socket(PPOCR_pipe):
-    """调用OCR（套接字模式）"""
+    """Call OCR (socket mode)"""
 
     def __init__(self, exePath: str, modelsPath: str = None, argument: dict = None):
-        """初始化识别器（套接字模式）。\n
-        `exePath`: 识别器`PaddleOCR_json.exe`的路径。\n
-        `modelsPath`: 识别库`models`文件夹的路径。若为None则默认识别库与识别器在同一目录下。\n
-        `argument`: 启动参数，字典`{"键":值}`。参数说明见 https://github.com/hiroi-sora/PaddleOCR-json
+        """Initialize recognizer (socket mode).\n
+        `exePath`: Path to the recognizer `PaddleOCR_json.exe`.\n
+        `modelsPath`: Path to the recognition library `models` folder. If None, assumes the library is in the same directory as the recognizer.\n
+        `argument`: Startup parameters, dictionary `{"key":value}`. Parameter description see https://github.com/hiroi-sora/PaddleOCR-json
         """
-        # 处理参数
+        # Process parameters
         if not argument:
             argument = {}
         if "port" not in argument:
-            argument["port"] = 0  # 随机端口号
+            argument["port"] = 0  # Random port number
         if "addr" not in argument:
-            argument["addr"] = "loopback"  # 本地环回地址
+            argument["addr"] = "loopback"  # Local loopback address
 
-        # 处理输入的路径，可能为本地或远程路径
+        # Process input path, may be local or remote path
         self.__runningMode = self.__configureExePath(exePath)
 
-        # 如果为本地路径：使用 PPOCR_pipe 来开启本地引擎进程
+        # If local path: use PPOCR_pipe to start local engine process
         if self.__runningMode == "local":
-            super().__init__(self.exePath, modelsPath, argument)  # 父类构造函数
+            super().__init__(self.exePath, modelsPath, argument)  # Parent class constructor
             self.__ENABLE_CLIPBOARD = super().isClipboardEnabled()
-            # 再获取一行输出，检查是否成功启动服务器
+            # Get another line of output, check if server started successfully
             initStr = self.ret.stdout.readline().decode("utf-8", errors="ignore")
-            if not self.ret.poll() == None:  # 子进程已退出，初始化失败
+            if not self.ret.poll() == None:  # Subprocess has exited, initialization failed
                 raise Exception(f"Socket init fail.")
-            if "Socket init completed. " in initStr:  # 初始化成功
+            if "Socket init completed. " in initStr:  # Initialization successful
                 splits = initStr.split(":")
                 self.ip = splits[0].split("Socket init completed. ")[1]
-                self.port = int(splits[1])  # 提取端口号
-                self.ret.stdout.close()  # 关闭管道重定向，防止缓冲区填满导致堵塞
-                print(f"套接字服务器初始化成功。{self.ip}:{self.port}")
+                self.port = int(splits[1])  # Extract port number
+                self.ret.stdout.close()  # Close pipe redirection, prevent buffer filling causing blockage
+                print(f"Socket server initialization successful. {self.ip}:{self.port}")
                 return
 
-        # 如果为远程路径：直接连接
+        # If remote path: connect directly
         elif self.__runningMode == "remote":
             self.__ENABLE_CLIPBOARD = False
-            # 发送一个空指令，检测远程服务器可用性
+            # Send an empty instruction, detect remote server availability
             testServer = self.runDict({})
             if testServer["code"] in [902, 903, 904]:
                 raise Exception(f"Socket connection fail.")
-            print(f"套接字服务器连接成功。{self.ip}:{self.port}")
+            print(f"Socket server connection successful. {self.ip}:{self.port}")
             return
 
-        # 异常
+        # Exception
         self.exit()
         raise Exception(f"Socket init fail.")
 
@@ -231,27 +231,27 @@ class PPOCR_socket(PPOCR_pipe):
         return self.__runningMode
 
     def runDict(self, writeDict: dict):
-        """传入指令字典，发送给引擎进程。\n
-        `writeDict`: 指令字典。\n
-        `return`:  {"code": 识别码, "data": 内容列表或错误信息字符串}\n"""
+        """Pass instruction dictionary, send to engine process.\n
+        `writeDict`: Instruction dictionary.\n
+        `return`:  {"code": identification code, "data": content list or error message string}\n"""
 
-        # 仅在本地模式下检查引擎进程
+        # Only check engine process in local mode
         if self.__runningMode == "local":
-            # 检查子进程
+            # Check subprocess
             if not self.ret.poll() == None:
-                return {"code": 901, "data": f"子进程已崩溃。"}
+                return {"code": 901, "data": f"Subprocess has crashed."}
 
-        # 通信
+        # Communication
         writeStr = jsonDumps(writeDict, ensure_ascii=True, indent=None) + "\n"
         try:
-            # 创建TCP连接
+            # Create TCP connection
             clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             clientSocket.connect((self.ip, self.port))
-            # 发送数据
+            # Send data
             clientSocket.sendall(writeStr.encode())
-            # 发送完所有数据，关闭我方套接字，之后只能从服务器读取数据
+            # After sending all data, close our socket, can only read data from server afterwards
             clientSocket.shutdown(socket.SHUT_WR)
-            # 接收数据
+            # Receive data
             resData = b""
             while True:
                 chunk = clientSocket.recv(1024)
@@ -260,50 +260,50 @@ class PPOCR_socket(PPOCR_pipe):
                 resData += chunk
             getStr = resData.decode()
         except ConnectionRefusedError:
-            return {"code": 902, "data": "连接被拒绝"}
+            return {"code": 902, "data": "Connection refused"}
         except TimeoutError:
-            return {"code": 903, "data": "连接超时"}
+            return {"code": 903, "data": "Connection timeout"}
         except Exception as e:
-            return {"code": 904, "data": f"网络错误：{e}"}
+            return {"code": 904, "data": f"Network error: {e}"}
         finally:
-            clientSocket.close()  # 关闭连接
-        # 反序列输出信息
+            clientSocket.close()  # Close connection
+        # Deserialize output information
         try:
             return jsonLoads(getStr)
         except Exception as e:
             return {
                 "code": 905,
-                "data": f"识别器输出值反序列化JSON失败。异常信息：[{e}]。原始内容：[{getStr}]",
+                "data": f"Recognizer output value JSON deserialization failed. Exception info: [{e}]. Original content: [{getStr}]",
             }
 
     def exit(self):
-        """关闭引擎子进程"""
-        # 仅在本地模式下关闭引擎进程
+        """Close engine subprocess"""
+        # Only close engine process in local mode
         if hasattr(self, "ret"):
             if self.__runningMode == "local":
                 if not self.ret:
                     return
                 try:
-                    self.ret.kill()  # 关闭子进程
+                    self.ret.kill()  # Close subprocess
                 except Exception as e:
                     print(f"[Error] ret.kill() {e}")
             self.ret = None
 
         self.ip = None
         self.port = None
-        atexit.unregister(self.exit)  # 移除退出处理
-        print("###  PPOCR引擎子进程关闭！")
+        atexit.unregister(self.exit)  # Remove exit handling
+        print("###  PPOCR engine subprocess closed!")
 
     def __del__(self):
         self.exit()
 
     def __configureExePath(self, exePath: str) -> str:
-        """处理识别器路径，自动区分本地路径和远程路径"""
+        """Process recognizer path, automatically distinguish local path and remote path"""
 
         pattern = r"remote://(.*):(\d+)"
         match = re.search(pattern, exePath)
         try:
-            if match:  # 远程模式
+            if match:  # Remote mode
                 self.ip = match.group(1)
                 self.port = int(match.group(2))
                 if self.ip == "any":
@@ -311,7 +311,7 @@ class PPOCR_socket(PPOCR_pipe):
                 elif self.ip == "loopback":
                     self.ip = "127.0.0.1"
                 return "remote"
-            else:  # 本地模式
+            else:  # Local mode
                 self.exePath = exePath
                 return "local"
         except:
@@ -321,11 +321,11 @@ class PPOCR_socket(PPOCR_pipe):
 def GetOcrApi(
     exePath: str, modelsPath: str = None, argument: dict = None, ipcMode: str = "pipe"
 ):
-    """获取识别器API对象。\n
-    `exePath`: 识别器`PaddleOCR_json.exe`的路径。\n
-    `modelsPath`: 识别库`models`文件夹的路径。若为None则默认识别库与识别器在同一目录下。\n
-    `argument`: 启动参数，字典`{"键":值}`。参数说明见 https://github.com/hiroi-sora/PaddleOCR-json\n
-    `ipcMode`: 进程通信模式，可选值为套接字模式`socket` 或 管道模式`pipe`。用法上完全一致。
+    """Get recognizer API object.\n
+    `exePath`: Path to the recognizer `PaddleOCR_json.exe`.\n
+    `modelsPath`: Path to the recognition library `models` folder. If None, assumes the library is in the same directory as the recognizer.\n
+    `argument`: Startup parameters, dictionary `{"key":value}`. Parameter description see https://github.com/hiroi-sora/PaddleOCR-json\n
+    `ipcMode`: Process communication mode, optional values are socket mode `socket` or pipe mode `pipe`. Usage is completely consistent.
     """
     if ipcMode == "socket":
         return PPOCR_socket(exePath, modelsPath, argument)
@@ -333,5 +333,5 @@ def GetOcrApi(
         return PPOCR_pipe(exePath, modelsPath, argument)
     else:
         raise Exception(
-            f'ipcMode可选值为 套接字模式"socket" 或 管道模式"pipe" ，不允许{ipcMode}。'
+            f'ipcMode optional values are socket mode "socket" or pipe mode "pipe", {ipcMode} is not allowed.'
         )

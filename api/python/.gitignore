@@ -1,7 +1,7 @@
-# 无视所有图片
+# Ignore all images
 *.png
 *.jpg
 *.jpeg
 
-# 除了 test.jpg
+# Except test.jpg
 !test.jpg

@@ -1,55 +1,55 @@
-#    demo1.py ：演示OCR基础功能
-# 👉 demo2.py ：演示可视化接口
-#    demo3.py ：演示OCR文段后处理（段落合并）接口
+#    demo1.py: Demonstrates basic OCR functionality
+# 👉 demo2.py: Demonstrates visualization interface
+#    demo3.py: Demonstrates OCR text post-processing (paragraph merging) interface
 
 from PPOCR_api import GetOcrApi
 from PPOCR_visualize import visualize
 
 import os
 
-# 测试图片路径
+# Test image path
 TestImagePath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test.jpg")
 
-# 初始化识别器对象，传入 PaddleOCR-json 引擎路径。
+# Initialize recognizer object, pass PaddleOCR-json engine path.
 ocr = GetOcrApi(r"Your Path/PaddleOCR-json.exe")
 
 if ocr.getRunningMode() == "local":
-    print(f"初始化OCR成功，进程号为{ocr.ret.pid}")
+    print(f"OCR initialization successful, process ID is {ocr.ret.pid}")
 elif ocr.getRunningMode() == "remote":
-    print(f"连接远程OCR引擎成功，ip：{ocr.ip}，port：{ocr.port}")
-print(f"\n测试图片路径：{TestImagePath}")
+    print(f"Connected to remote OCR engine successfully, ip: {ocr.ip}, port: {ocr.port}")
+print(f"\nTest image path: {TestImagePath}")
 
 
-# OCR识别图片，获取文本块
+# OCR recognize image, get text blocks
 getObj = ocr.run(TestImagePath)
-ocr.exit()  # 结束引擎子进程
+ocr.exit()  # End engine subprocess
 if not getObj["code"] == 100:
-    print("识别失败！！")
+    print("Recognition failed!!")
     exit()
-textBlocks = getObj["data"]  # 提取文本块数据
+textBlocks = getObj["data"]  # Extract text block data
 
-# 可视化演示
+# Visualization demonstration
 
-# 示例1：传入文本块和图片路径，显示结果
-print("显示图片！")
+# Example 1: Pass text blocks and image path, display result
+print("Display image!")
 visualize(textBlocks, TestImagePath).show()
-# 程序阻塞，直到关闭图片浏览窗口才继续往下走。如果长时间不动，注释掉上面这行再跑
+# Program blocks until the image viewer window is closed before continuing. If it doesn't move for a long time, comment out the line above and run again
 
-# 示例2：显示更详细的信息
+# Example 2: Display more detailed information
 vis = visualize(textBlocks, TestImagePath)
-print("获取图片！")
-# 禁用包围盒，获取原图片的 PIL Image 对象
+print("Get image!")
+# Disable bounding box, get original image PIL Image object
 visImg1 = vis.get(isBox=False)
-# 启用文本和序号、禁用原图（显示透明背景），获取 PIL Image 对象
+# Enable text and serial numbers, disable original image (display transparent background), get PIL Image object
 visImg2 = vis.get(isText=True, isOrder=True, isSource=False)
-# 获取两个图片的左右对比，左边是原图，右边是单独的文本框
+# Get left-right comparison of two images, left is original image, right is separate text boxes
 vis = visualize.createContrast(visImg1, visImg2)
-# 显示该对比
+# Display the comparison
 vis.show()
-# 接下来可以还用PIL库对visImg进一步处理。
+# Next, you can further process visImg with PIL library.
 
-# 保存到本地
-print(f"保存图片到 {os.path.dirname(os.path.abspath(__file__))}\\可视化结果.png ")
-vis.save(f"{os.path.dirname(os.path.abspath(__file__))}\\可视化结果.png", isText=True)
+# Save to local
+print(f"Save image to {os.path.dirname(os.path.abspath(__file__))}\\visualization_result.png ")
+vis.save(f"{os.path.dirname(os.path.abspath(__file__))}\\visualization_result.png", isText=True)
 
-print("程序结束。")
+print("Program ended.")
