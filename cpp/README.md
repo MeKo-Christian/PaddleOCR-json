@@ -1,6 +1,8 @@
 # PaddleOCR-json V1.4 Windows 构建指南
 
-> 注：此开发版基于 Paddle Inference 3.0.0 推理后端，在不带 AVX512 指令集的普通家用CPU上存在性能显著下降的问题。普通用户建议切换到本项目稳定版分支。
+> 注：此开发版基于 Paddle Inference 3.0.0 推理后端，在不带 AVX512 指令集的普通家用CPU上存在性能显著下降的问题。普通用户建议切换到> [!NOTE]
+> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。
+> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。* `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。 * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。目稳定版分支。
 
 本文档帮助如何在Windows上编译 PaddleOCR-json V1.4 （对应PPOCR v2.8）。面向小白，用的最简单的步骤。大佬可酌情调整。
 
@@ -9,7 +11,7 @@
 相关文档：
 - [Linux 构建指南](./README-linux.md)
 - [Docker 部署](./README-docker.md#使用-docker-部署)
-- 其他平台 [移植指南](docs/移植指南.md)
+- 其他平台 [移植指南](docs/Migration-Guide.md)
 
 
 ## 1. 前期准备
@@ -182,7 +184,7 @@ OCR init time: 0.62887s
 OCR init completed.
 ```
 
-如果你需要移植其他平台，可以参考文档 [移植指南](docs/移植指南.md)
+如果你需要移植其他平台，可以参考文档 [移植指南](docs/Migration-Guide.md)
 
 ## 4. 安装
 

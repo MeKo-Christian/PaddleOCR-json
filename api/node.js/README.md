@@ -1,14 +1,14 @@
 # PaddleOCR-json-node-api
-基于[hiroi-sora/PaddleOCR-json](https://github.com/hiroi-sora/PaddleOCR-json)的node.js api.
+Node.js API based on [hiroi-sora/PaddleOCR-json](https://github.com/hiroi-sora/PaddleOCR-json).
 
 <details>
 <summary>Log</summary>
 
 v1.1.0 2023.5.2
 
-适配 [hiroi-sora/PaddleOCR-json v1.3.0 Alpha.1](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.3.0_alpha.1)
+Adapted to [hiroi-sora/PaddleOCR-json v1.3.0 Alpha.1](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.3.0_alpha.1)
 
-(v1.2 回退 paddleocrjson@1.0.11-a)
+(v1.2 rolled back to `paddleocrjson@1.0.11-a`)
 
 v1.0.8 2023.1.20
 
@@ -20,15 +20,15 @@ v1.0.7 2022.11.8
 
 v1.0.6 2022.11.8
 
-`OCR.postMessage`与`OCR.flush`区别开.
+Separated `OCR.postMessage` and `OCR.flush`.
 
-使监听的数据与`OCR.flush`返回的数据一致.
+Made the monitored data consistent with the data returned by `OCR.flush`.
 
-优化动态参数中关于路径的字段.
+Optimized path-related fields in dynamic parameters.
 
-使用`npm`包管理.
+Used `npm` package management.
 
-使用`ts`编译.
+Used `ts` compilation.
 
 v1.0.5 2022.10.12
 
@@ -36,24 +36,24 @@ v1.0.5 2022.10.12
 
 v1.0.4 2022.10.1
 
-适配[hiroi-sora/PaddleOCR-json v1.2.1](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.2.1).
+Adapted to [hiroi-sora/PaddleOCR-json v1.2.1](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.2.1).
 
-不使用`iconv-lite`包.
+No longer using `iconv-lite` package.
 
-更改启动参数输入方式.
+Changed startup parameter input method.
 
 v1.0.3 2022.10.1
 
-适配[hiroi-sora/PaddleOCR-json v1.2.1](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.2.1).
+Adapted to [hiroi-sora/PaddleOCR-json v1.2.1](https://github.com/hiroi-sora/PaddleOCR-json/releases/tag/v1.2.1).
 
 v1.0.2 2022.9.14
 
-增加环境选项.
+Added environment options.
 
 v1.0.1 2022.9.14
 
-修复无法识别 Alpha版 的启动完成标志的bug.
-JSON输入更改为ascii转义.
+Fixed bug where startup completion flag for Alpha version could not be recognized.
+Changed JSON input to ASCII escaping.
 
 v1.0.0 2022.9.10
 
@@ -61,9 +61,9 @@ v1.0.0 2022.9.10
 
 </details>
 
-## 快速开始
+## Quick Start
 
-### OCR api
+### OCR API
 
 ```
 npm install paddleocrjson
@@ -95,15 +95,15 @@ ocr.on('exit', (code) =>{
 
 ```
 
-### server服务
+### Server Service
 
-详见[PunchlY/PaddleOCR-json-node-api/test](https://github.com/PunchlY/PaddleOCR-json-node-api/tree/main/api/node.js/test).
+See [PunchlY/PaddleOCR-json-node-api/test](https://github.com/PunchlY/PaddleOCR-json-node-api/tree/main/api/node.js/test) for details.
 
-## api
+## API
 
 ### OCR
 
-`OCR`是`worker_threads.Worker`的派生类.
+`OCR` is a derived class of `worker_threads.Worker`.
 
 #### new OCR(path, args, options, debug)
 
@@ -113,9 +113,9 @@ const ocr = new OCR('PaddleOCR_json.exe', [], {
 }, false);
 ```
 
-`args`详见[Node.js child_process.spawn](https://nodejs.org/api/child_process.html#child_processspawncommand-args-options)与[hiroi-sora/PaddleOCR-json#配置参数说明](https://github.com/hiroi-sora/PaddleOCR-json#%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E).
+See [Node.js child_process.spawn](https://nodejs.org/api/child_process.html#child_processspawncommand-args-options) for `args` details and [hiroi-sora/PaddleOCR-json#Configuration Parameters](https://github.com/hiroi-sora/PaddleOCR-json#%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E) for configuration parameters.
 
-`options`详见[Node.js child_process.spawn](https://nodejs.org/api/child_process.html#child_processspawncommand-args-options).
+See [Node.js child_process.spawn](https://nodejs.org/api/child_process.html#child_processspawncommand-args-options) for `options` details.
 
 #### OCR.flush(obj)
 
@@ -126,24 +126,24 @@ ocr.flush({
     // ...
 });
 ```
-`ocr.flush`返回的是`Promise`对象.
+`ocr.flush` returns a `Promise` object.
 
-`obj`详见[hiroi-sora/PaddleOCR-json/blob/main/docs/详细使用指南.md#配置参数](https://github.com/hiroi-sora/PaddleOCR-json/blob/main/docs/%E8%AF%A6%E7%BB%86%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md#%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0)
+See [hiroi-sora/PaddleOCR-json/blob/main/docs/Detailed Usage Guide.md#Configuration Parameters](https://github.com/hiroi-sora/PaddleOCR-json/blob/main/docs/%E8%AF%A6%E7%BB%86%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md#%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0) for `obj` details.
 
 <details>
 <summary>
-<strong>剪贴板相关接口已弃用，不建议使用</strong>
+<strong>Clipboard-related interfaces have been deprecated and are not recommended for use</strong>
 </summary>
 
-如果要识别剪贴板，请传入`{ image_path: null }`(`obj.image_dir`设置为`null`).
+If you want to recognize clipboard content, pass `{ image_path: null }` (set `obj.image_dir` to `null`).
 
 </details>
 
-#### 其他
+#### Other
 
-你可以用`worker_threads.Worker`的api来监听或操作`OCR`实例.
+You can use `worker_threads.Worker`'s API to monitor or operate the `OCR` instance.
 
-例如:
+For example:
 ```js
 ocr.on('init', (pid, addr, port) => {
     console.log('OCR init completed.');

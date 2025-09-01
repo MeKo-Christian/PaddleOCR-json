@@ -4,14 +4,14 @@
 
 本文档帮助如何在Linux上编译 PaddleOCR-json V1.4 （对应PaddleOCR v2.8）。推荐给具有一定Linux命令行使用经验的读者。
 
-本文参考了 PaddleOCR官方的[编译指南](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/readme_ch.md) ，但建议以本文为准。
+本文参考了 PaddleOCR官方的[编译指南](https://github.com/PaddlePaddle/PaddleOCR/blob/relea> * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。 * `ENABLE_REMOTE_EXIT`: 这个参数控制着 "[传入 `exit` 关停引擎进程](../docs/Detailed-Usage-Guide.md#4-关闭引擎进程)" 的功能。e/2.8/deploy/cpp_infer/readme_ch.md) ，但建议以本文为准。
 
 另外，本文将使用Debian/Ubuntu系列linux为例子进行讲解。其他linux发行版的用户请自行替换一些对应的命令（比如apt这类的）。
 
 相关文档：
 - [Windows 构建指南](./README.md)
 - [Docker 部署](./README-docker.md)
-- 其他平台 [移植指南](docs/移植指南.md)
+- 其他平台 [移植指南](docs/Migration-Guide.md)
 
 可参考的文档：
 - [PaddleOCR 官方文档](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.8/deploy/cpp_infer/readme_ch.md#12-%E7%BC%96%E8%AF%91opencv%E5%BA%93)

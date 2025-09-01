@@ -16,7 +16,7 @@
 
 #include <gflags/gflags.h>
 
-// 工作模式
+// Operating mode
 DECLARE_string(image_path);
 DECLARE_int32(port);
 DECLARE_string(addr);
@@ -75,7 +75,7 @@ DECLARE_bool(cls);
 DECLARE_bool(table);
 DECLARE_bool(layout);
 
-// 读取配置文件
+// Read config file
 std::string read_config();
-// 检测参数合法性
+// Check parameter validity
 std::string check_flags();

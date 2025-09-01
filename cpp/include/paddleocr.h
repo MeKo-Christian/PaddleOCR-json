@@ -24,38 +24,38 @@ namespace PaddleOCR
     {
     public:
         explicit PPOCR();
-        ~PPOCR() = default; // 默认析构函数
+        ~PPOCR() = default; // Default destructor
 
-        // OCR方法，处理图像列表，返回每个图像的OCR结果向量
+        // OCR method, process image list, return OCR result vector for each image
         std::vector<std::vector<OCRPredictResult>> ocr(std::vector<cv::Mat> img_list,
                                                        bool det = true,
                                                        bool rec = true,
                                                        bool cls = true);
-        // OCR方法，处理单个图像，返回OCR结果
+        // OCR method, process single image, return OCR result
         std::vector<OCRPredictResult> ocr(cv::Mat img, bool det = true,
                                           bool rec = true, bool cls = true);
 
-        void reset_timer();              // 重置计时器
-        void benchmark_log(int img_num); // 记录基准测试日志，参数为图像数量
+        void reset_timer();              // Reset timer
+        void benchmark_log(int img_num); // Log benchmark, parameter is image count
 
-        // 智能指针
-        std::unique_ptr<DBDetector> detector_;       // 指向 文本检测器实例
-        std::unique_ptr<Classifier> classifier_;     // 指向 方向分类器实例
-        std::unique_ptr<CRNNRecognizer> recognizer_; // 指向 文本识别器实例
+        // Smart pointers
+        std::unique_ptr<DBDetector> detector_;       // Point to text detector instance
+        std::unique_ptr<Classifier> classifier_;     // Point to direction classifier instance
+        std::unique_ptr<CRNNRecognizer> recognizer_; // Point to text recognizer instance
 
     protected:
-        // 时间信息
+        // Time information
         std::vector<double> time_info_det = {0, 0, 0};
         std::vector<double> time_info_rec = {0, 0, 0};
         std::vector<double> time_info_cls = {0, 0, 0};
 
-        // 文本检测：输入单张图片，在ocr_results向量中存放单行文本碎图的检测信息
+        // Text detection: input single image, store single line text fragment detection info in ocr_results vector
         void det(cv::Mat img,
                  std::vector<OCRPredictResult> &ocr_results);
-        // 方向分类：输入单行碎图向量，在ocr_results向量中存放每个碎图的方向标志
+        // Direction classification: input single line fragment vector, store direction flag for each fragment in ocr_results vector
         void cls(std::vector<cv::Mat> img_list,
                  std::vector<OCRPredictResult> &ocr_results);
-        // 文本识别：输入单行碎图向量，在ocr_results向量中存放每个碎图的文本
+        // Text recognition: input single line fragment vector, store text for each fragment in ocr_results vector
         void rec(std::vector<cv::Mat> img_list,
                  std::vector<OCRPredictResult> &ocr_results);
     };

@@ -64,7 +64,7 @@ namespace PaddleOCR
         // Run predictor
         void Run(cv::Mat &img, std::vector<std::vector<std::vector<int>>> &boxes,
                  std::vector<double> &times);
-        std::shared_ptr<paddle_infer::Predictor> predictor_; // 推理库实例
+        std::shared_ptr<paddle_infer::Predictor> predictor_; // Inference library instance
 
     private:
         bool use_gpu_ = false;

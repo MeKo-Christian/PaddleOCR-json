@@ -4,102 +4,102 @@
 #ifndef TASK_H
 #define TASK_H
 
-#include "include/nlohmann/json.hpp" // json库
+#include "include/nlohmann/json.hpp" // json library
 
 namespace PaddleOCR
 {
 
-// ==================== 标志码 ====================
-#define CODE_INIT 0 // 每回合初始值，回合结束时仍为它代表受管控的区域内未发现错误
-// 识别成功
-#define CODE_OK 100      // 成功，且识别出文字
-#define CODE_OK_NONE 101 // 成功，且未识别到文字
+// ==================== Flag codes ====================
+#define CODE_INIT 0 // Initial value per round, still this at end of round means no errors found in controlled area
+// Recognition successful
+#define CODE_OK 100      // Success, and text recognized
+#define CODE_OK_NONE 101 // Success, and no text recognized
 #define MSG_OK_NONE(p) "No text found in image. Path: \"" + p + "\""
-// 按路径读图，失败
-#define CODE_ERR_PATH_EXIST 200 // 图片路径不存在
+// Read image by path, failed
+#define CODE_ERR_PATH_EXIST 200 // Image path does not exist
 #define MSG_ERR_PATH_EXIST(p) "Image path dose not exist. Path: \"" + p + "\""
-#define CODE_ERR_PATH_CONV 201 // 图片路径string无法转换到wstring
+#define CODE_ERR_PATH_CONV 201 // Image path string cannot convert to wstring
 #define MSG_ERR_PATH_CONV(p) "Image path failed to convert to utf-16 wstring. Path: \"" + p + "\""
-#define CODE_ERR_PATH_READ 202 // 图片路径存在，但无法打开文件
+#define CODE_ERR_PATH_READ 202 // Image path exists, but cannot open file
 #define MSG_ERR_PATH_READ(p) "Image open failed. Path: \"" + p + "\""
-#define CODE_ERR_PATH_DECODE 203 // 图片打开成功，但读取到的内容无法被opencv解码
+#define CODE_ERR_PATH_DECODE 203 // Image opened successfully, but content cannot be decoded by opencv
 #define MSG_ERR_PATH_DECODE(p) "Image decode failed. Path: \"" + p + "\""
 
 #if defined(_WIN32) && defined(ENABLE_CLIPBOARD)
-// 剪贴板读图，失败
-#define CODE_ERR_CLIP_OPEN 210 // 剪贴板打开失败 ( OpenClipboard )
+// Read image from clipboard, failed
+#define CODE_ERR_CLIP_OPEN 210 // Clipboard open failed ( OpenClipboard )
 #define MSG_ERR_CLIP_OPEN "Clipboard open failed."
-#define CODE_ERR_CLIP_EMPTY 211 // 剪贴板为空 ( GetPriorityClipboardFormat NULL )
+#define CODE_ERR_CLIP_EMPTY 211 // Clipboard is empty ( GetPriorityClipboardFormat NULL )
 #define MSG_ERR_CLIP_EMPTY "Clipboard is empty."
-#define CODE_ERR_CLIP_FORMAT 212 // 剪贴板的格式不支持 ( GetPriorityClipboardFormat -1 )
+#define CODE_ERR_CLIP_FORMAT 212 // Clipboard format not supported ( GetPriorityClipboardFormat -1 )
 #define MSG_ERR_CLIP_FORMAT "Clipboard format is not valid."
-#define CODE_ERR_CLIP_DATA 213 // 剪贴板获取内容句柄失败，通常由别的程序占用剪贴板引起 ( GetClipboardData NULL )
+#define CODE_ERR_CLIP_DATA 213 // Getting clipboard data handle failed, usually caused by another program occupying clipboard ( GetClipboardData NULL )
 #define MSG_ERR_CLIP_DATA "Getting clipboard data handle failed."
-#define CODE_ERR_CLIP_FILES 214 // 剪贴板查询到的文件的数量不为1 ( DragQueryFile != 1 )
+#define CODE_ERR_CLIP_FILES 214 // Number of files queried from clipboard is not 1 ( DragQueryFile != 1 )
 #define MSG_ERR_CLIP_FILES(n) "Clipboard number of query files is not valid. Number: " + std::to_string(n)
-#define CODE_ERR_CLIP_GETOBJ 215 // 剪贴板检索图形对象信息失败 ( GetObject NULL )
+#define CODE_ERR_CLIP_GETOBJ 215 // Clipboard retrieve graphic object info failed ( GetObject NULL )
 #define MSG_ERR_CLIP_GETOBJ "Clipboard get bitmap object failed."
-#define CODE_ERR_CLIP_BITMAP 216 // 剪贴板获取位图数据失败 ( GetBitmapBits 复制字节为空 )
+#define CODE_ERR_CLIP_BITMAP 216 // Getting clipboard bitmap data failed ( GetBitmapBits copied bytes empty )
 #define MSG_ERR_CLIP_BITMAP "Getting clipboard bitmap bits failed."
-#define CODE_ERR_CLIP_CHANNEL 217 // 剪贴板中位图的通道数不支持 ( nChannels 不为1，3，4 )
+#define CODE_ERR_CLIP_CHANNEL 217 // Number of channels in clipboard bitmap not supported ( nChannels not 1,3,4 )
 #define MSG_ERR_CLIP_CHANNEL(n) "Clipboard number of image channels is not valid. Number: " + std::to_string(n)
 #endif
 
-// base64读图，失败
-#define CODE_ERR_BASE64_DECODE 300 // base64字符串解析为string失败
+// Read image from base64, failed
+#define CODE_ERR_BASE64_DECODE 300 // Base64 string parse to string failed
 #define MSG_ERR_BASE64_DECODE "Base64 decode failed."
-#define CODE_ERR_BASE64_IM_DECODE 301 //  base64字符串解析成功，但读取到的内容无法被opencv解码
+#define CODE_ERR_BASE64_IM_DECODE 301 // Base64 string parse successful, but content cannot be decoded by opencv
 #define MSG_ERR_BASE64_IM_DECODE "Base64 data imdecode failed."
-// json相关
-#define CODE_ERR_JSON_DUMP 400 // json对象 转字符串失败
+// Json related
+#define CODE_ERR_JSON_DUMP 400 // Json object to string failed
 #define MSG_ERR_JSON_DUMP "Json dump failed."
-#define CODE_ERR_JSON_PARSE 401 // json字符串 转对象失败
+#define CODE_ERR_JSON_PARSE 401 // Json string to object failed
 #define MSG_ERR_JSON_PARSE "Json parse failed."
-#define CODE_ERR_JSON_PARSE_KEY 402 // json对象 解析某个键时失败
+#define CODE_ERR_JSON_PARSE_KEY 402 // Json object parse certain key failed
 #define MSG_ERR_JSON_PARSE_KEY(k) "Json parse key [" + k + "] failed."
-#define CODE_ERR_NO_TASK 403 // 未发现有效任务
+#define CODE_ERR_NO_TASK 403 // No valid task found
 #define MSG_ERR_NO_TASK "No valid tasks."
 
-    // ==================== 任务调用类 ====================
+    // ==================== Task calling class ====================
     class Task
     {
 
     public:
-        int ocr(); // OCR图片
+        int ocr(); // OCR image
 
     private:
-        bool is_exit = false;         // 为true时退出任务循环
-        std::unique_ptr<PPOCR> ppocr; // OCR引擎智能指针
-        int t_code;                   // 本轮任务状态码
-        std::string t_msg;            // 本轮任务状态消息
+        bool is_exit = false;         // Exit task loop when true
+        std::unique_ptr<PPOCR> ppocr; // OCR engine smart pointer
+        int t_code;                   // Current round task status code
+        std::string t_msg;            // Current round task status message
 
-        // 任务流程
-        void init_engine();               // 初始化OCR引擎
-        void memory_check_cleanup();        // 检查内存占用，达到上限时释放内存
-        std::string run_ocr(std::string); // 输入用户传入值（字符串），返回结果json字符串
-        int single_image_mode();          // 单次识别模式
-        int socket_mode();                // 套接字模式
-        int anonymous_pipe_mode();        // 匿名管道模式
-        int get_memory_mb();           // 获取当前内存占用。返回整数，单位MB。失败时返回-1。
+        // Task flow
+        void init_engine();               // Initialize OCR engine
+        void memory_check_cleanup();        // Check memory usage, release memory when reaching limit
+        std::string run_ocr(std::string); // Input user passed value (string), return result json string
+        int single_image_mode();          // Single recognition mode
+        int socket_mode();                // Socket mode
+        int anonymous_pipe_mode();        // Anonymous pipe mode
+        int get_memory_mb();           // Get current memory usage. Return integer in MB. Return -1 on failure.
 
-        // 输出相关
-        void set_state(int code = CODE_INIT, std::string msg = "");             // 设置状态
-        std::string get_state_json(int code = CODE_INIT, std::string msg = ""); // 获取状态json字符串
-        std::string get_ocr_result_json(const std::vector<OCRPredictResult> &); // 传入OCR结果，返回json字符串
+        // Output related
+        void set_state(int code = CODE_INIT, std::string msg = "");             // Set state
+        std::string get_state_json(int code = CODE_INIT, std::string msg = ""); // Get state json string
+        std::string get_ocr_result_json(const std::vector<OCRPredictResult> &); // Input OCR result, return json string
 
-        // 输入相关
-        std::string json_dump(nlohmann::json);                             // json对象转字符串
-        cv::Mat imread_json(std::string &);                                // 输入json字符串，解析json并返回图片Mat
-        cv::Mat imread_u8(std::string path, int flag = cv::IMREAD_COLOR);  // 代替cv imread，输入utf-8字符串，返回Mat。失败时设置错误码，并返回空Mat。
-        cv::Mat imread_clipboard(int flag = cv::IMREAD_COLOR);             // 从当前剪贴板中读取图片
-        cv::Mat imread_base64(std::string &, int flag = cv::IMREAD_COLOR); // 输入base64编码的字符串，返回Mat
+        // Input related
+        std::string json_dump(nlohmann::json);                             // Json object to string
+        cv::Mat imread_json(std::string &);                                // Input json string, parse json and return image Mat
+        cv::Mat imread_u8(std::string path, int flag = cv::IMREAD_COLOR);  // Replace cv imread, input utf-8 string, return Mat. Set error code on failure and return empty Mat.
+        cv::Mat imread_clipboard(int flag = cv::IMREAD_COLOR);             // Read image from current clipboard
+        cv::Mat imread_base64(std::string &, int flag = cv::IMREAD_COLOR); // Input base64 encoded string, return Mat
 #ifdef _WIN32
-        cv::Mat imread_wstr(std::wstring pathW, int flags = cv::IMREAD_COLOR); // 输入unicode wstring字符串，返回Mat。
+        cv::Mat imread_wstr(std::wstring pathW, int flags = cv::IMREAD_COLOR); // Input unicode wstring, return Mat.
 #endif
 
-        // 其他
+        // Other
 
-        // ipv4 地址转 uint32_t
+        // IPv4 address to uint32_t
         int addr_to_uint32(const std::string &addr, uint32_t &addr_out);
     };
 

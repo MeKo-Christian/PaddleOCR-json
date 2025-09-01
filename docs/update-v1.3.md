@@ -1,22 +1,22 @@
-# V1.3 更新说明
+# V1.3 Update Notes
 
-#### 新增功能
+## New Features
 
-- 传入图片方式增加Base64方式，可以将图片编码为Base64字符串，塞入json传给引擎识别。
-- 进程交互方式增加套接字服务器方式，引擎进程开启一个TCP端口，调用方可以通过ip+端口调用OCR。
+- Added Base64 method for passing images, you can encode images as Base64 strings and send them in JSON to the engine for recognition.
+- Added socket server mode for process interaction, the engine process opens a TCP port, and callers can call OCR through IP + port.
 
-#### 启动参数改动说明
+## Startup Parameter Changes
 
-- 取消了 `use_system_pause`, `ensure_chcp`, `use_debug` 这三个跟调试相关的参数。默认不会暂停程序。
-- `ensure_ascii` 的默认值改为 `true` ，默认开启ascii转义。
-- 不再支持以 `-image_dir=路径` 传入图片路径，请使用 `-image_path=路径` 。
-- 新增两个跟服务器模式有关的参数：地址 `addr` 和端口 `port` 。
+- Removed the three debug-related parameters: `use_system_pause`, `ensure_chcp`, `use_debug`. The program will not pause by default.
+- Changed the default value of `ensure_ascii` to `true`, enabling ASCII escaping by default.
+- No longer supports passing image paths with `-image_dir=path`, please use `-image_path=path`.
+- Added two parameters related to server mode: address `addr` and port `port`.
 
-#### json传入值改动说明
+## JSON Input Value Changes
 
-- 不再支持参数热更新，因为用处有限。所有参数必须在启动时指定。
-- 不再支持直接传入路径，路径必须包含在json中，如 `{"image_path":""}`
-- 不再支持以 `{"image_dir":""}` 传入图片路径，请使用 `{"image_path":""}` 。
-- 新增结束进程的指令： `exit` 。可以通过传入 `{"exit":""}` 或直接传入 `exit` 来结束引擎进程。当然手动kill掉也是可以的。
-- 新增Base64传图方式：`{"image_base64":"base64编码字符串"}`。
-- 管道模式和套接字模式，输入输出值的格式是完全相同的，仅仅是交互方式不同。编写API时，建议仅重载进程交互的函数来适配这两种模式，其他参数解析等部分的代码可以复用。
+- No longer supports parameter hot updates, as they have limited use. All parameters must be specified at startup.
+- No longer supports passing paths directly, paths must be included in JSON, such as `{"image_path":""}`
+- No longer supports passing image paths with `{"image_dir":""}`, please use `{"image_path":""}`.
+- Added process termination command: `exit`. You can terminate the engine process by passing `{"exit":""}` or directly passing `exit`. Of course, manually killing it also works.
+- Added Base64 image transmission method: `{"image_base64":"base64 encoded string"}`.
+- Pipe mode and socket mode have exactly the same input/output value format, only the interaction method is different. When writing APIs, it is recommended to only overload the process interaction functions to adapt to these two modes, and the code for parameter parsing and other parts can be reused.

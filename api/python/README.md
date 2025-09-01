@@ -1,87 +1,93 @@
 # PaddleOCR-json Python API
 
-使用这份API，可以方便地调用 PaddleOCR-json 。比起Python原生的PaddleOCR库，PaddleOCR-json拥有更好的性能。你可以同时享受C++推理库的高效率和Python的简易开发。
+This API allows you to easily call PaddleOCR-json. Compared to the native Python PaddleOCR library, PaddleOCR-json has better performance. You can enjoy both the high efficiency of the C++ inference library and the ease of Python development.
 
-请先在本项目 [Releases](https://github.com/hiroi-sora/PaddleOCR-json/releases) 中下载OCR引擎二进制程序，然后将 [python api](https://github.com/hiroi-sora/PaddleOCR-json/tree/main/api/python) （当前目录中的所有文件）下载到本地，即可通过python接口调用二进制程序。
+First, download the OCR engine binary from the project's [Releases](https://github.com/hiroi-sora/PaddleOCR-json/releases), then download the [python api](https://github.com/hiroi-sora/PaddleOCR-json/tree/main/api/python) (all files in the current directory) to your local machine, and you can call the binary through the Python interface.
 
-Python API 拥有三大模块：
-- 基础OCR接口
-- 结果可视化模块，将OCR结果绘制到图像上并展示或保存。
-- 文本后处理模块，支持段落合并、竖排文本整理等功能。
+The Python API has three major modules:
 
-# 基础OCR接口
+- Basic OCR interface
+- Result visualization module, which draws OCR results onto images and displays or saves them.
+- Text post-processing module, supporting paragraph merging, vertical text organization, etc.
+
+## Basic OCR Interface
 
 ```python
 from PPOCR_api import GetOcrApi
 ```
 
-### 调用OCR的流程分为三步：
-1. 初始化OCR引擎进程
-2. 通过OCR引擎，执行一次或多次识图任务
-3. 关闭OCR引擎进程
+### The process of calling OCR is divided into three steps
 
-### 第一步：初始化
+1. Initialize the OCR engine process
+2. Execute one or more image recognition tasks through the OCR engine
+3. Close the OCR engine process
 
-**接口：** `GetOcrApi()`
+### Step 1: Initialization
 
-**参数：** 
+**Interface:** `GetOcrApi()`
 
-| 名称       | 默认值 | 类型 | 描述                                                           |
-| ---------- | ------ | ---- | -------------------------------------------------------------- |
-| exePath    | 必填   | str  | 引擎二进制文件的路径，或远程服务器地址，见下。                 |
-| modelsPath | None   | str  | 识别库路径，若为None则默认识别库与引擎在同一目录下。           |
-| argument   | None   | dict | 启动参数字典。可以用这个参数指定配置文件、指定识别语言。       |
-| ipcMode    | "pipe" | str  | 进程间通信方式，可选值为套接字模式`socket` 或 管道模式`pipe`。 |
+**Parameters:**
 
-##### 关于 `exePath` ：
+| Name       | Default | Type | Description                                                           |
+| ---------- | ------- | ---- | --------------------------------------------------------------------- |
+| exePath    | Required | str  | Path to the engine binary file, or remote server address, see below. |
+| modelsPath | None    | str  | Recognition library path, if None, the recognition library is assumed to be in the same directory as the engine. |
+| argument   | None    | dict | Startup parameter dictionary. Use this to specify config files, recognition language. |
+| ipcMode    | "pipe"  | str  | Inter-process communication method, options are socket mode `socket` or pipe mode `pipe`. |
 
-当前允许两种调用引擎的模式：
-1. 引擎部署在本地：
-- 在 [Releases](https://github.com/hiroi-sora/PaddleOCR-json/releases) 中下载OCR引擎二进制程序到本地，解压。
-- Windows 平台：`exePath` 传入 `PaddleOCR-json.exe` 的路径。
-- Linux 平台：`exePath` 传入 `run.sh` 的路径
-2. 引擎部署在远程：
-- 在服务器上部署 PaddleOCR-json 程序，启用服务器模式，并确保客户机可以访问服务器。
-- 客户机：`exePath` 传入 `"remote://ip:port"` 。
+#### About `exePath`
 
-##### 关于 `modelsPath` ：
+Currently allows two modes to call the engine:
 
-这个参数的本意是希望能自动处理相对路径在不同的工作路径下出错的问题。API在启动引擎进程时会将工作路径设置在引擎的父文件夹下，如果用户直接传入 `models_path` 路径到参数字典 `argument` 则很容易出现路径错误。而 `modelsPath` 参数则会先将输入的路径以当前的python运行路径为基准转换成绝对路径，之后再用 `models_path` 参数的形式输入给引擎，进而防止路径错误。当然，你也可以通过输入一个新的 `models_path` 参数到 `argument` 字典来覆盖掉这个路径。
+1. Engine deployed locally:
 
-[更多有关 `models_path` 参数的细节请看这里](../../README.md#常用配置参数说明)。
+   - Download the OCR engine binary from [Releases](https://github.com/hiroi-sora/PaddleOCR-json/releases) to local, unzip.
+   - Windows platform: `exePath` passes the path to `PaddleOCR-json.exe`.
+   - Linux platform: `exePath` passes the path to `run.sh`
 
-**返回值：** 
+2. Engine deployed remotely:
 
-初始化成功，返回引擎API对象。初始化失败或连接远程服务失败，抛出异常。
+   - Deploy the PaddleOCR-json program on the server, enable server mode, and ensure the client can access the server.
+   - Client: `exePath` passes `"remote://ip:port"`.
 
-**示例1：** 最简单的情况
+#### About `modelsPath`
+
+The intention of this parameter is to automatically handle relative path errors in different working paths. When the API starts the engine process, it sets the working path to the engine's parent folder. If the user directly passes the `models_path` path to the `argument` dictionary, path errors can easily occur. The `modelsPath` parameter will first convert the input path to an absolute path based on the current Python running path, then input it to the engine in the form of the `models_path` parameter, thereby preventing path errors. Of course, you can also override this path by inputting a new `models_path` parameter into the `argument` dictionary.
+
+[More details about the `models_path` parameter can be found here](../../README.md#常用配置参数说明).
+
+**Return Value:**
+
+If initialization succeeds, returns the engine API object. If initialization fails or remote connection fails, throws an exception.
+
+**Example 1:** Simplest case
 
 ```python
 ocr = GetOcrApi(r"…………\PaddleOCR_json.exe")
 ```
 
-**示例2：** 指定使用繁体中文识别库（需要先在引擎models目录内放入识别库文件）
+**Example 2:** Specify using Traditional Chinese recognition library (need to place recognition library files in the engine's models directory first)
 
-注意，config_path的路径如果是相对路径，则根为PaddleOCR-json.exe所在的路径，而不是Python脚本的路径。
+Note, if config_path is a relative path, the root is the path where PaddleOCR-json.exe is located, not the Python script's path.
 
 ```python
 argument = {'config_path': "models/config_chinese_cht.txt"}
 ocr = GetOcrApi(r"…………\PaddleOCR_json.exe", argument)
 ```
 
-**示例3：** 指定使用套接字通信方式
+**Example 3:** Specify using socket communication method
 
-使用管道通信(默认)和套接字通信，在使用上而言是透明的，即调用方法完全一致。
+Using pipe communication (default) and socket communication, in terms of usage, is transparent, meaning the calling methods are exactly the same.
 
-性能上有微弱的区别，管道的效率略高一点，而套接字TCP在大型数据传输时（如30MB以上的Base64图片数据）可能稳定性略好一些。对于普通用户，使用默认设定即可。
+There is a slight performance difference, pipe is slightly more efficient, while socket TCP may have slightly better stability for large data transmission (such as Base64 image data over 30MB). For ordinary users, use the default settings.
 
 ```python
 ocr = GetOcrApi(r"…………\PaddleOCR_json.exe", ipcMode="socket")
 ```
 
-**示例4：** 使用套接字模式连接到远程服务器
+**Example 4:** Use socket mode to connect to remote server
 
-在套接字通信模式下，你可以连接到一个远程的PaddleOCR-json服务器。这样一来就不需要将整套系统部署到同一台机器上了。
+In socket communication mode, you can connect to a remote PaddleOCR-json server. This way, you don't need to deploy the entire system on the same machine.
 
 ```python
 ip = '192.168.10.1'
@@ -89,260 +95,262 @@ port = 1234
 ocr = GetOcrApi(r"remote://192.168.10.1:1234", ipcMode="socket")
 ```
 
-这里我们使用一个URI来代替引擎位置，表示服务器的IP和端口。接着用参数 `ipcMode` 来使用套接字模式（不可以用管道模式）。在这种情况下，输入 `argument` 参数不会有任何作用，因为这个python脚本并不会启动引擎进程。
+Here we use a URI to replace the engine location, indicating the server's IP and port. Then use the parameter `ipcMode` to use socket mode (cannot use pipe mode). In this case, inputting the `argument` parameter will have no effect, because this Python script does not start the engine process.
 
-在这种部署情况下，我们建议你使用方法 `runBase64()` 或者 `runBytes()` 来传输文件，方法 `run()` 的路径传输方式很容易出错。当然，你也可以禁用服务器的[路径传输json命令image_path](../../cpp/README.md#cmake构建参数)。
+In this deployment scenario, we recommend using the `runBase64()` or `runBytes()` methods to transmit files, as the `run()` method's path transmission method is prone to errors. Of course, you can also disable the server's [path transmission json command image_path](../../cpp/README.md#cmake构建参数).
 
-### 第二步：识别图片
+### Step 2: Recognize Images
 
-Python API 提供了丰富的接口，可以用各种姿势调用OCR。
+The Python API provides rich interfaces, you can call OCR in various ways.
 
-#### 1. 识别本地图片
+#### 1. Recognize Local Images
 
-**方法：** `run()`
+**Method:** `run()`
 
-**说明：** 对一张本地图片进行OCR
+**Description:** Perform OCR on a local image
 
-**参数：** 
+**Parameters:**
 
-| 名称    | 默认值 | 类型 | 描述                                 |
-| ------- | ------ | ---- | ------------------------------------ |
-| imgPath | 必填   | str  | 识别图片的路径，如`D:/test/test.png` |
+| Name    | Default | Type | Description                                 |
+| ------- | ------- | ---- | ------------------------------------------- |
+| imgPath | Required | str  | Path to the image to recognize, e.g. `D:/test/test.png` |
 
-**返回值字典：** 
+**Return Value Dictionary:**
 
-| 键   | 类型 | 描述                                                    |
-| ---- | ---- | ------------------------------------------------------- |
-| code | int  | 状态码。识别成功且有文字为100。其他情况详见主页README。 |
-| data | list | 识别成功时，data为OCR结果列表。                         |
-| data | str  | 识别失败时，data为错误信息字符串。                      |
+| Key  | Type | Description                                                    |
+| ---- | ---- | -------------------------------------------------------------- |
+| code | int  | Status code. 100 if recognition succeeds and has text. Other cases see main README. |
+| data | list | If recognition succeeds, data is the OCR result list.         |
+| data | str  | If recognition fails, data is the error message string.       |
 
-**示例：** 
+**Example:**
 
 ```python
 res = ocr.run("test.png")
-print("识别结果：\n", res)
+print("Recognition result:\n", res)
 ```
 
-#### 2. 识别图片字节流
+#### 2. Recognize Image Byte Stream
 
-**方法：** `runBytes()`
+**Method:** `runBytes()`
 
-**说明：** 对一个图片字节流进行OCR。可以通过这个接口识别 PIL Image 或者屏幕截图或者网络下载的图片，全程走内存，而无需先保存到硬盘。
+**Description:** Perform OCR on an image byte stream. Through this interface, you can recognize PIL Image or screenshots or network downloaded images, all in memory, without needing to save to disk first.
 
-**参数：** 
+**Parameters:**
 
-| 名称       | 默认值 | 类型  | 描述       |
-| ---------- | ------ | ----- | ---------- |
-| imageBytes | 必填   | bytes | 字节流对象 |
+| Name       | Default | Type  | Description       |
+| ---------- | ------- | ----- | ----------------- |
+| imageBytes | Required | bytes | Byte stream object |
 
-**返回值字典：同上** 
+Return Value Dictionary: Same as above
 
-**示例：** 
+**Example:**
 
 ```python
-with open("test.png", 'rb') as f: # 获取图片字节流
-    imageBytes = f.read() # 实际使用中，可以联网下载或者截图获取字节流
+with open("test.png", 'rb') as f: # Get image byte stream
+    imageBytes = f.read() # In actual use, can download from network or screenshot to get byte stream
 res = ocr.runBytes(imageBytes)
-print("字节流识别结果：\n", res)
+print("Byte stream recognition result:\n", res)
 ```
 
-#### 3. 识别图片Base64编码字符串
+#### 3. Recognize Image Base64 Encoded String
 
-**方法：** `runBase64()`
+**Method:** `runBase64()`
 
-**说明：** 对一个Base64编码字符串进行OCR。
+**Description:** Perform OCR on a Base64 encoded string.
 
-**参数：** 
+**Parameters:**
 
-| 名称        | 默认值 | 类型 | 描述               |
-| ----------- | ------ | ---- | ------------------ |
-| imageBase64 | 必填   | str  | Base64编码的字符串 |
+| Name        | Default | Type | Description               |
+| ----------- | ------- | ---- | ------------------------- |
+| imageBase64 | Required | str  | Base64 encoded string |
 
-**返回值字典：同上** 
+Return Value Dictionary: Same as above
 
-#### 4. 格式化输出OCR结果
+#### 4. Format Output OCR Result
 
-**方法：** `printResult()`
+**Method:** `printResult()`
 
-**说明：** 用于调试，打印一个OCR结果。
+**Description:** Used for debugging, print an OCR result.
 
-**参数：** 
+**Parameters:**
 
-| 名称 | 默认值 | 类型 | 描述              |
-| ---- | ------ | ---- | ----------------- |
-| res  | 必填   | dict | 一次OCR的返回结果 |
+| Name | Default | Type | Description              |
+| ---- | ------- | ---- | ------------------------ |
+| res  | Required | dict | Return result of one OCR |
 
-**无返回值** 
+No Return Value
 
-**示例：** 
+**Example:**
 
 ```python
 res = ocr.run("test.png")
-print("格式化输出：")
+print("Formatted output:")
 ocr.printResult(res)
 ```
 
-<details>
-<summary>
-<strong>剪贴板相关接口已弃用，不建议使用</strong>
-</summary>
+**Note:** Clipboard related interfaces are deprecated, not recommended for use
 
-#### 5. 识别剪贴板图片
+#### 5. Recognize Clipboard Image
 
-**方法：** `runClipboard()`
+**Method:** `runClipboard()`
 
-**说明：** 对当前剪贴板首位的图片进行OCR
+**Description:** Perform OCR on the first image in the current clipboard
 
-**无参数** 
+No Parameters
 
-**返回值字典：同上** 
+Return Value Dictionary: Same as above
 
-**示例：** 
+**Example:**
 
 ```python
 res = ocr.runClipboard()
-print("剪贴板识别结果：\n", res)
+print("Clipboard recognition result:\n", res)
 ```
 
-</details>
+**Method:** `isClipboardEnabled()`
 
-**方法：** `isClipboardEnabled()`
+**Description:** Check if clipboard function is enabled.
 
-**说明：** 检测剪贴板功能是否启用。
+No Parameters
 
-**无参数：** 
+Return Value
 
-**返回值** 
+If clipboard is enabled: `True`
 
-如果剪贴板已启用：`True`
+If clipboard is not enabled: `False`
 
-如果剪贴板未启用：`False`
+**Method:** `getRunningMode()`
 
-**方法：** `getRunningMode()`
+**Description:** Check the running mode of PaddleOCR-json engine, local or remote
 
-**说明：** 检测PaddleOCR-json引擎的运行模式，本地或远程
+No Parameters
 
-**无参数：** 
+Return Value String
 
-**返回值字符串：** 
+If engine runs locally: `"local"`
 
-如果引擎运行在本地：`"local"`
+If engine runs remotely: `"remote"`
 
-如果引擎运行在远程：`"remote"`
+See detailed examples in [demo1.py](demo1.py)
 
+### Step 3: Close OCR Engine Process
 
-使用示例详见 [demo1.py](demo1.py)
+Generally, when the program ends or the ocr object is released, the engine subprocess will be automatically closed, no need for manual management.
 
-### 第三步：关闭OCR引擎进程
+If you want to manually close the engine process, you can use the `exit()` method.
 
-一般情况下，在程序结束或者释放ocr对象时会自动关闭引擎子进程，无需手动管理。
-
-如果希望手动关闭引擎进程，可以使用 `exit()` 方法。
-
-**示例：** 
+**Example:**
 
 ```python
 ocr.exit()
 ```
 
-如果需要更换识别语言，则重新创建ocr对象即可，旧的对象析构时也会自动关闭旧引擎进程。
+If you need to change the recognition language, just recreate the ocr object, the old object will automatically close the old engine process when destructed.
 
-**示例：** 
+**Example:**
 
 ```python
-argument = {'config_path': "语言1.txt"}
+argument = {'config_path': "language1.txt"}
 ocr = GetOcrApi(r"…………\PaddleOCR_json.exe", argument)
-# TODO: 识别语言1
+# TODO: Recognize language1
 
-argument = {'config_path': "语言2.txt"}
+argument = {'config_path': "language2.txt"}
 ocr = GetOcrApi(r"…………\PaddleOCR_json.exe", argument)
-# TODO: 识别语言2
+# TODO: Recognize language2
 ```
 
-# 结果可视化模块
+## Result Visualization Module
 
-纯Python实现，不依赖PPOCR引擎的C++ opencv可视化模块，避免中文兼容性问题。
+Pure Python implementation, does not depend on PPOCR engine's C++ opencv visualization module, avoids Chinese compatibility issues.
 
-需要PIL图像处理库：`pip install pillow`
+Requires PIL image processing library: `pip install pillow`
 
 ```python
 from PPOCR_visualize import visualize
 ```
 
-### 获取文本块
+### Get Text Blocks
 
-首先得成功执行一次OCR，获取文本块列表（即`['data']`部分）
+First, successfully execute OCR once, get the text block list (i.e. the `['data']` part)
+
 ```python
 testImg = "D:/test.png"
 getObj = ocr.run(testImg)
 if not getObj["code"] == 100:
-    print('识别失败！！')
+    print('Recognition failed!!')
     exit()
-textBlocks = getObj["data"]  # 提取文本块数据
+textBlocks = getObj["data"]  # Extract text block data
 ```
 
-### 展示结果图片
+### Display Result Image
 
-只需一行代码，传入文本块和原图片的路径，打开图片浏览窗口
+Just one line of code, pass in text blocks and original image path, open image viewer window
+
 ```python
 visualize(textBlocks, testImg).show()
 ```
-此时程序阻塞，直到关闭图片浏览窗口才继续往下走。
 
-### 图片保存到本地
+At this time, the program blocks until the image viewer window is closed before continuing.
+
+### Save Image to Local
+
 ```python
-visualize(textBlocks, testImg).save('可视化结果.png')
+visualize(textBlocks, testImg).save('Visualization result.png')
 ```
 
-### 获取PIL Image对象
+### Get PIL Image Object
+
 ```python
 vis = visualize(textBlocks, testImg)
 img = vis.get()
 ```
 
-### 调整显示图层
+### Adjust Display Layers
 
-以上`show`,`save`,`get`三个接口，均能开启或禁用指定图层：
+The above `show`, `save`, `get` three interfaces can all enable or disable specified layers:
 
-- `isBox` T时启用包围盒图层。
-- `isText` T时启用文字图层。
-- `isOrder` T时启用序号图层。
-- `isSource` T时启用原图。F禁用原图，即得到透明背景的纯可视化结果。
+- `isBox` T enables bounding box layer.
+- `isText` T enables text layer.
+- `isOrder` T enables order layer.
+- `isSource` T enables original image. F disables original image, i.e. gets pure visualization result with transparent background.
 
-### 左右对比
+### Left-Right Comparison
 
-传入两个PIL Image对象，返回它们左右拼接而成的新Image
+Pass in two PIL Image objects, return a new Image formed by splicing them left and right
+
 ```python
 img_12 = visualize.createContrast(img1, img2)
 ```
 
-### 调整显示效果（颜色、粗细、字体等）
+### Adjust Display Effects (Color, Thickness, Font, etc.)
 
-导入PIL库，以便操作图片对象
+Import PIL library to operate on image objects
+
 ```python
 from PIL import Image
 ```
 
-接口创建各个图层，传入文本块、要生成的图层大小、自定义参数，然后将各个图层合并
+Interface creates each layer, passes in text blocks, layer size to generate, custom parameters, then merges each layer
 
-颜色有关的参数，均可传入6位RGB十六进制码（如`#112233`）或8位RGBA码（最后两位控制透明度，如`#11223344`）
+For color-related parameters, can pass 6-digit RGB hex code (like `#112233`) or 8-digit RGBA code (last two digits control transparency, like `#11223344`)
+
 ```python
-# 创建各图层
-img = Image.open(testImg).convert('RGBA')  # 原始图片背景图层
-imgBox = visualize.createBox(textBlocks, img.size,  # 包围盒图层
+# Create each layer
+img = Image.open(testImg).convert('RGBA')  # Original image background layer
+imgBox = visualize.createBox(textBlocks, img.size,  # Bounding box layer
                              outline='#ccaa99aa', width=10)
-imgText = visualize.createText(textBlocks, img.size,  # 文本图层
+imgText = visualize.createText(textBlocks, img.size,  # Text layer
                                fill='#44556699')
-# 合并各图层
+# Merge each layer
 img = visualize.composite(img, imgBox)
 img = visualize.composite(img, imgText)
-img.show() # 显示
+img.show() # Display
 ```
 
-使用示例详见 [demo2.py](demo2.py)
+See detailed examples in [demo2.py](demo2.py)
 
-# 文本后处理 tbpu
+## Text Post-processing tbpu
 
 (text block processing unit)
 
@@ -350,68 +358,70 @@ img.show() # 显示
 from tbpu import GetParser
 ```
 
-由 [Umi-OCR](https://github.com/hiroi-sora/Umi-OCR) 和 [间隙树排序法](https://github.com/hiroi-sora/GapTree_Sort_Algorithm) 带来的技术。
+Technology brought by [Umi-OCR](https://github.com/hiroi-sora/Umi-OCR) and [Gap Tree Sorting Algorithm](https://github.com/hiroi-sora/GapTree_Sort_Algorithm).
 
-OCR返回的结果中，一项包含文字、包围盒、置信度的元素，称为一个“文本块” - text block 。
+In the results returned by OCR, an element containing text, bounding box, confidence is called a "text block" - text block.
 
-文块不一定是完整的一句话或一个段落。反之，一般是零散的文字。一个OCR结果常由多个文块组成，这项文块原始的顺序也不一定符合阅读顺序。
+A text block is not necessarily a complete sentence or paragraph. On the contrary, it is generally scattered text. An OCR result often consists of multiple text blocks, and the original order of these text blocks may not conform to the reading order.
 
-文块后处理 tbpu 的作用就是：将OCR原始文本块进行处理，调整其顺序、并划分出段落。
+The function of text block post-processing tbpu is: process the original OCR text blocks, adjust their order, and divide into paragraphs.
 
-### 方案列表
+### Scheme List
 
-| 方案id        | 方案名称      |
-| ------------- | ------------- |
-| `multi_para`  | 多栏-自然段   |
-| `multi_line`  | 多栏-总是换行 |
-| `multi_none`  | 多栏-无换行   |
-| `single_para` | 单栏-自然段   |
-| `single_line` | 单栏-总是换行 |
-| `single_none` | 单栏-无换行   |
-| `single_code` | 单栏-代码段   |
+| Scheme ID        | Scheme Name      |
+| ---------------- | ---------------- |
+| `multi_para`     | Multi-column - Natural Paragraph   |
+| `multi_line`     | Multi-column - Always Line Break |
+| `multi_none`     | Multi-column - No Line Break   |
+| `single_para`    | Single-column - Natural Paragraph   |
+| `single_line`    | Single-column - Always Line Break |
+| `single_none`    | Single-column - No Line Break   |
+| `single_code`    | Single-column - Code Block   |
 
-也可以在 [Umi-OCR](https://github.com/hiroi-sora/Umi-OCR) 中直观地体验这些方案的作用。
+You can also experience the effects of these schemes intuitively in [Umi-OCR](https://github.com/hiroi-sora/Umi-OCR).
 
-通过 `GetParser("方案id")` 来获取对应方案的后处理解析器对象。通过`run()`接口调用解析，并传入OCR结果列表，得到处理后的新列表，见下。
+Get the corresponding post-processing parser object through `GetParser("scheme id")`. Call through the `run()` interface, pass in the OCR result list, get the processed new list, see below.
 
-### 使用
+### Usage
 
-向接口传入文本块列表（即`['data']`部分），返回新的文本块列表。
+Pass the text block list (i.e. the `['data']` part) to the interface, return a new text block list.
+
 ```python
 from tbpu import GetParser
 
 textBlocks = getObj["data"]
 
-# 获取“多栏-自然段”排版解析器对象
+# Get "Multi-column - Natural Paragraph" layout parser object
 parser = GetParser("multi_para")
-# 传入OCR结果列表，返回新的文本块列表
+# Pass in OCR result list, return new text block list
 textBlocksNew = parser.run(textBlocks)
 ```
 
-- 执行后，原列表 textBlocks 的结构可能被破坏，不要再使用原列表（或先深拷贝备份）。
-- 新文本块列表 textBlocksNew 中，每个文本块的顺序会根据所选方案重新排序。
-- 同时，textBlocksNew每个文本块中会增加键值 `["end"]` ，表示这个文本块的结尾符（即与下一个文本块的间隔符号）是什么。以 `multi_para` 为例：
-  - 假如一个文本块位于一个自然段的段尾，则 `["end"]=="\n"` 。
-  - 假如位于自然段的中间，且上下文为中文，则 `["end"]==""` 。
-  - 假如位于自然段的中间，且上下文为英文，则 `["end"]==" "` 。
+- After execution, the structure of the original list textBlocks may be destroyed, do not use the original list anymore (or deep copy and backup first).
+- In the new text block list textBlocksNew, the order of each text block will be reordered according to the selected scheme.
+- At the same time, each text block in textBlocksNew will add a key `["end"]`, indicating what the ending symbol of this text block is (i.e. the interval symbol with the next text block). Taking `multi_para` as an example:
+  - If a text block is at the end of a natural paragraph, then `["end"]=="\n"`.
+  - If in the middle of a natural paragraph, and the context is Chinese, then `["end"]==""`.
+  - If in the middle of a natural paragraph, and the context is English, then `["end"]==" "`.
 
-跟结果可视化配合使用：
+Used with result visualization:
+
 ```python
 from tbpu import GetParser
 
-# OCR原始结果 可视化
+# OCR original result visualization
 textBlocks = getObj["data"]
 img1 = visualize(textBlocks, testImg).get(isOrder=True)
 
-# 执行文本块后处理：多栏-自然段
+# Execute text block post-processing: Multi-column - Natural Paragraph
 parser = GetParser("multi_para")
 textBlocksNew = parser.run(textBlocks)
 
-# 后处理结果 可视化
+# Post-processing result visualization
 img2 = visualize(textBlocksNew, testImg).get(isOrder=True)
 
-# 左右拼接图片并展示
+# Splice images left and right and display
 visualize.createContrast(img1, img2).show()
 ```
 
-使用示例详见 [demo3.py](demo3.py)
+See detailed examples in [demo3.py](demo3.py)
