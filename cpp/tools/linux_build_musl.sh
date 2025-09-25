@@ -4,8 +4,8 @@
 # This creates a fully static binary that can run on any Linux system
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-cd "$SCRIPT_DIR/.."
-SOURCE_DIR="$SCRIPT_DIR/../.source"
+SRC_DIR="$SCRIPT_DIR/.."
+SOURCE_DIR="$SRC_DIR/.source"
 
 # Configuration
 MUSL_VERSION="1.2.3"
@@ -20,7 +20,6 @@ echo "Output dir: $OUTPUT_DIR"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
-cd "$OUTPUT_DIR"
 
 MUSL_DIR="$OUTPUT_DIR/musl-$MUSL_VERSION"
 # Only build a local musl toolchain if a musl C++ compiler is not available
@@ -40,6 +39,10 @@ if ! command -v x86_64-linux-musl-g++ >/dev/null 2>&1; then
 fi
 
 # Set musl toolchain
+# Try cached prebuilt toolchain first
+if [ -d "$SOURCE_DIR/toolchains/x86_64-linux-musl-cross/bin" ]; then
+  export PATH="$SOURCE_DIR/toolchains/x86_64-linux-musl-cross/bin:$PATH"
+fi
 # Prefer system-provided cross C++ compiler if available (e.g., x86_64-linux-musl-g++)
 if command -v x86_64-linux-musl-g++ >/dev/null 2>&1; then
   export CC="x86_64-linux-musl-gcc"
@@ -68,22 +71,27 @@ OPENCV_CONFIG_CMAKE="$OPENCV_INSTALL_DIR/lib/cmake/opencv4/OpenCVConfig.cmake"
 if [ ! -f "$OPENCV_CONFIG_CMAKE" ]; then
     echo "Building OpenCV with musl..."
 
-    # Download OpenCV if not exists
-    if [ ! -d "opencv-$OPENCV_VERSION" ]; then
-        wget -O opencv-$OPENCV_VERSION.tar.gz https://github.com/opencv/opencv/archive/refs/tags/$OPENCV_VERSION.tar.gz
-        tar -xzf opencv-$OPENCV_VERSION.tar.gz
+    # Ensure OpenCV source is present under $OUTPUT_DIR
+    if [ ! -d "$OUTPUT_DIR/opencv-$OPENCV_VERSION" ]; then
+        if [ ! -f "$OUTPUT_DIR/opencv-$OPENCV_VERSION.tar.gz" ]; then
+            wget -O "$OUTPUT_DIR/opencv-$OPENCV_VERSION.tar.gz" https://github.com/opencv/opencv/archive/refs/tags/$OPENCV_VERSION.tar.gz
+        fi
+        tar -xzf "$OUTPUT_DIR/opencv-$OPENCV_VERSION.tar.gz" -C "$OUTPUT_DIR"
     fi
 
     mkdir -p "$OPENCV_BUILD_DIR"
     cd "$OPENCV_BUILD_DIR"
 
     GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
-    cmake $GEN "../opencv-$OPENCV_VERSION" \
+    cmake $GEN "$OUTPUT_DIR/opencv-$OPENCV_VERSION" \
         -DCMAKE_INSTALL_PREFIX="$OPENCV_INSTALL_DIR" \
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_LIST=core,imgcodecs,imgproc \
         -DBUILD_opencv_world=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_opencv_apps=OFF \
+        -DOPENCV_ENABLE_NONFREE=OFF \
         -DOPENCV_FORCE_3RDPARTY_BUILD=ON \
         -DWITH_ZLIB=ON \
         -DWITH_JPEG=ON \
@@ -93,6 +101,14 @@ if [ ! -f "$OPENCV_CONFIG_CMAKE" ]; then
         -DWITH_OPENJPEG=OFF \
         -DWITH_JASPER=OFF \
         -DWITH_WEBP=OFF \
+        -DWITH_IPP=OFF \
+        -DWITH_TBB=OFF \
+        -DWITH_EIGEN=OFF \
+        -DWITH_OPENCL=OFF \
+        -DWITH_GTK=OFF \
+        -DWITH_QT=OFF \
+        -DWITH_FFMPEG=OFF \
+        -DWITH_GSTREAMER=OFF \
         -DBUILD_PERF_TESTS=OFF \
         -DBUILD_TESTS=OFF \
         -DBUILD_DOCS=OFF \
@@ -117,7 +133,7 @@ if [ -z "$PADDLE_LIB" ]; then
 fi
 
 GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
-cmake $GEN -S .. -B "$OUTPUT_DIR" \
+cmake $GEN -S "$SRC_DIR" -B "$OUTPUT_DIR" \
     -DPADDLE_LIB="$PADDLE_LIB" \
     -DOPENCV_DIR="$OPENCV_INSTALL_DIR" \
     -DOpenCV_DIR="$OPENCV_INSTALL_DIR/lib/cmake/opencv4" \

@@ -19,11 +19,11 @@
 
 # Stray downloads placed at repo root (migrated by `just tidy`)
 /models/
-/opencv-release/
+/opencv-*/
 /paddle_inference_manylinux_*/
 /paddle_inference.tgz
 /models_*.zip
-/opencv-release_*.zip
+/opencv-*.zip
 
 # Test run outputs
 /api/node.js/test/tmp/

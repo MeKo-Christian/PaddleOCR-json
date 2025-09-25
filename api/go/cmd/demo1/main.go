@@ -19,7 +19,7 @@ func main() {
 	// Engine download address: https://github.com/MeKo-Christian/PaddleOCR-json/releases
 	// Windows: Pass path to PaddleOCR-json.exe.
 	// Linux: Pass path to run.sh
-	ocr, err := ppocr.NewPPOCRPipe("../../../build/standard/bin/PaddleOCR-json", nil, nil)
+	ocr, err := ppocr.GetOcrApi("../../../build/standard/bin/PaddleOCR-json", nil, nil, "pipe")
 	if err != nil {
 		fmt.Printf("Failed to initialize OCR: %v\n", err)
 		os.Exit(1)
@@ -27,9 +27,13 @@ func main() {
 	defer ocr.Exit()
 
 	if ocr.GetRunningMode() == "local" {
-		fmt.Printf("OCR initialization successful, process ID is %d\n", ocr.(*ppocr.PPOCRPipe).GetPID())
+		if pipe, ok := ocr.(*ppocr.PPOCRPipe); ok {
+			fmt.Printf("OCR initialization successful, process ID is %d\n", pipe.GetPID())
+		}
 	} else if ocr.GetRunningMode() == "remote" {
-		fmt.Printf("Connected to remote OCR engine successfully, ip: %s, port: %d\n", ocr.(*ppocr.PPOCRSocket).GetIP(), ocr.(*ppocr.PPOCRSocket).GetPort())
+		if socket, ok := ocr.(*ppocr.PPOCRSocket); ok {
+			fmt.Printf("Connected to remote OCR engine successfully, ip: %s, port: %d\n", socket.GetIP(), socket.GetPort())
+		}
 	}
 	fmt.Printf("\nTest image path: %s\n", testImagePath)
 

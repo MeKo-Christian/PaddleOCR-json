@@ -19,16 +19,20 @@ func main() {
 	testImagePath := filepath.Join("..", "..", "..", "api", "python", "test.jpg")
 
 	// Initialize recognizer object, pass PaddleOCR-json engine path.
-	ocr, err := ppocr.NewPPOCRPipe("../../../build/standard/bin/PaddleOCR-json", nil, nil)
+	ocr, err := ppocr.GetOcrApi("../../../build/standard/bin/PaddleOCR-json", nil, nil, "pipe")
 	if err != nil {
 		fmt.Printf("Failed to initialize OCR: %v\n", err)
 		os.Exit(1)
 	}
 
 	if ocr.GetRunningMode() == "local" {
-		fmt.Printf("OCR initialization successful, process ID is %d\n", ocr.(*ppocr.PPOCRPipe).GetPID())
+		if pipe, ok := ocr.(*ppocr.PPOCRPipe); ok {
+			fmt.Printf("OCR initialization successful, process ID is %d\n", pipe.GetPID())
+		}
 	} else if ocr.GetRunningMode() == "remote" {
-		fmt.Printf("Connected to remote OCR engine successfully, ip: %s, port: %d\n", ocr.(*ppocr.PPOCRSocket).GetIP(), ocr.(*ppocr.PPOCRSocket).GetPort())
+		if socket, ok := ocr.(*ppocr.PPOCRSocket); ok {
+			fmt.Printf("Connected to remote OCR engine successfully, ip: %s, port: %d\n", socket.GetIP(), socket.GetPort())
+		}
 	}
 	fmt.Printf("\nTest image path: %s\n", testImagePath)
 
@@ -90,11 +94,7 @@ func main() {
 	ppocr.PrintResult(getObj)
 
 	// Get layout parser object
-	parser, err := tbpu.NewParser("multi_para")
-	if err != nil {
-		fmt.Printf("Failed to create parser: %v\n", err)
-		os.Exit(1)
-	}
+	parser := tbpu.GetParser("multi_para")
 
 	// Convert visualize TextBlocks back to tbpu format for processing
 	var tbpuBlocks []tbpu.TextBlock
@@ -108,11 +108,7 @@ func main() {
 	}
 
 	// Pass OCR result list, return new text block list
-	textBlocksNew, err := parser.Run(tbpuBlocks)
-	if err != nil {
-		fmt.Printf("Failed to process text blocks: %v\n", err)
-		os.Exit(1)
-	}
+	textBlocksNew := parser.Run(tbpuBlocks)
 
 	// Convert back to visualize format
 	var visualizeBlocksNew []visualize.TextBlock
