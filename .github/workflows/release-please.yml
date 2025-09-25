@@ -1,0 +1,180 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    steps:
+      - name: Run release-please
+        uses: google-github-actions/release-please-action@v4
+        id: release
+        with:
+          release-type: simple
+          package-name: paddleocr-json
+
+  build-and-upload:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: standard
+            description: "Standard shared library build"
+          - target: static
+            description: "Static linked binary"
+          - target: musl
+            description: "Musl static binary"
+          - target: cross-aarch64
+            description: "ARM64 cross-compiled binary"
+            arch: aarch64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          cpp/.source
+          ~/.cache/pip
+        key: paddleocr-deps-${{ runner.os }}-${{ hashFiles('justfile') }}
+        restore-keys: |
+          paddleocr-deps-${{ runner.os }}-
+
+    - name: Install Just
+      uses: extractions/setup-just@v2
+
+    - name: Setup system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential wget tar zip unzip git \
+          gcc g++ cmake make ninja-build \
+          libgomp1 pkg-config \
+          gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+          gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+          musl-tools
+
+    - name: Setup musl toolchain (for musl builds)
+      if: matrix.target == 'musl'
+      run: just setup-musl-deps
+
+    - name: Download dependencies
+      run: just download
+
+    - name: Build ${{ matrix.target }}
+      run: |
+        case "${{ matrix.target }}" in
+          "standard")
+            just build
+            ;;
+          "static")
+            just build-static
+            ;;
+          "musl")
+            just build-musl
+            ;;
+          "cross-aarch64")
+            just build-cross aarch64
+            ;;
+        esac
+
+    - name: Package artifacts
+      run: |
+        mkdir -p artifacts
+
+        if [ "${{ matrix.target }}" = "cross-aarch64" ]; then
+          BUILD_DIR="build/aarch64"
+          TARGET_NAME="aarch64"
+        else
+          BUILD_DIR="build/${{ matrix.target }}"
+          TARGET_NAME="${{ matrix.target }}"
+        fi
+
+        if [ -f "$BUILD_DIR/bin/PaddleOCR-json" ]; then
+          # Create package directory
+          PKG_DIR="paddleocr-json-$TARGET_NAME"
+          mkdir -p "artifacts/$PKG_DIR"
+
+          # Copy binary
+          cp "$BUILD_DIR/bin/PaddleOCR-json" "artifacts/$PKG_DIR/"
+
+          # Copy shared libraries if they exist
+          if [ -d "$BUILD_DIR/lib" ] && [ "$(ls -A $BUILD_DIR/lib)" ]; then
+            mkdir -p "artifacts/$PKG_DIR/lib"
+            cp -r "$BUILD_DIR/lib/"* "artifacts/$PKG_DIR/lib/"
+          fi
+
+          # Copy models if available
+          if [ -d "cpp/.source/models" ]; then
+            cp -r "cpp/.source/models" "artifacts/$PKG_DIR/"
+          fi
+
+          # Create run script
+          cat > "artifacts/$PKG_DIR/run.sh" << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$LD_LIBRARY_PATH"
+exec "$SCRIPT_DIR/PaddleOCR-json" "$@"
+EOF
+          chmod +x "artifacts/$PKG_DIR/run.sh"
+
+          # Create README
+          cat > "artifacts/$PKG_DIR/README.txt" << EOF
+PaddleOCR-json ${{ matrix.target }} build
+Build target: ${{ matrix.description }}
+$([ "${{ matrix.arch }}" ] && echo "Architecture: ${{ matrix.arch }}" || echo "Architecture: x86_64")
+Version: ${{ needs.release-please.outputs.tag_name }}
+Built on: $(date -u)
+
+Usage:
+  ./run.sh -image_path="image.jpg"
+  ./PaddleOCR-json -models_path="./models" -config_path="./models/config_chinese.txt" -image_path="image.jpg"
+
+For more information, visit: https://github.com/hiroi-sora/PaddleOCR-json
+EOF
+
+          # Create archives
+          cd artifacts
+          tar -czf "paddleocr-json-$TARGET_NAME-${{ needs.release-please.outputs.tag_name }}.tar.gz" "$PKG_DIR/"
+          zip -r "paddleocr-json-$TARGET_NAME-${{ needs.release-please.outputs.tag_name }}.zip" "$PKG_DIR/"
+          cd ..
+        else
+          echo "Build failed - binary not found"
+          exit 1
+        fi
+
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release-please.outputs.upload_url }}
+        asset_path: ./artifacts/paddleocr-json-${{ matrix.target == 'cross-aarch64' && 'aarch64' || matrix.target }}-${{ needs.release-please.outputs.tag_name }}.tar.gz
+        asset_name: paddleocr-json-${{ matrix.target == 'cross-aarch64' && 'aarch64' || matrix.target }}-${{ needs.release-please.outputs.tag_name }}.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload Release Assets (ZIP)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release-please.outputs.upload_url }}
+        asset_path: ./artifacts/paddleocr-json-${{ matrix.target == 'cross-aarch64' && 'aarch64' || matrix.target }}-${{ needs.release-please.outputs.tag_name }}.zip
+        asset_name: paddleocr-json-${{ matrix.target == 'cross-aarch64' && 'aarch64' || matrix.target }}-${{ needs.release-please.outputs.tag_name }}.zip
+        asset_content_type: application/zip

@@ -210,37 +210,25 @@ cd ..
 
 ## 2. Build & Compile Project
 
-0. If no customization of the project is needed, jump to [4. One-click compile + run](#compile-run)
+This project uses `just` as a command runner. To build and run the project on Linux, follow these steps:
 
-1. Under `PaddleOCR-json/cpp`, create a new folder `build`
+1.  **Install `just` and dependencies:**
 
-```sh
-mkdir build
-```
+    ```bash
+    just setup
+    ```
 
-2. Use CMake to build the project. Parameter meanings see [CMake Build Parameters](#cmake-args)
+2.  **Build the project:**
 
-```sh
-cmake -S . -B build/ \
-    -DPADDLE_LIB=$PADDLE_LIB \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DOPENCV_DIR=$OPENCV_DIR  # Optional: OpenCV path
-```
+    ```bash
+    just build
+    ```
 
-Explanation:
-* `-S .` : Specify the current folder `PaddleOCR-json/cpp` as the CMake project root folder
-* `-B build/` : Specify `PaddleOCR-json/cpp/build` folder as the project folder
-* `-DPADDLE_LIB=$PADDLE_LIB` : Use the environment variable `$PADDLE_LIB` set earlier to specify the prediction library location
-* `-DCMAKE_BUILD_TYPE=Release` : Set this project to `Release` project. You can also change it to `Debug`.
-* `-DOPENCV_DIR=$OPENCV_DIR` : Use the environment variable `$OPENCV_DIR` set earlier to specify the self-compiled OpenCV location. If installing libopencv-dev, no need to set this parameter
+3.  **Run the executable:**
 
-3. Use CMake to compile the project
-
-```sh
-cmake --build build/
-```
-
-- Here we use the `--build build/` command to specify the project folder `build` to compile.
+    ```bash
+    just run --image_path="test.jpg"
+    ```
 
 <a id="cmake-args"></a>
 

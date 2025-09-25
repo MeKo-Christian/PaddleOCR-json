@@ -1,0 +1,27 @@
+{
+  "release-type": "simple",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "component": "paddleocr-json",
+      "package-name": "paddleocr-json",
+      "changelog-sections": [
+        {"type": "feat", "section": "Features"},
+        {"type": "fix", "section": "Bug Fixes"},
+        {"type": "perf", "section": "Performance Improvements"},
+        {"type": "build", "section": "Build System", "hidden": false},
+        {"type": "ci", "section": "Continuous Integration", "hidden": false},
+        {"type": "docs", "section": "Documentation"},
+        {"type": "refactor", "section": "Code Refactoring"},
+        {"type": "test", "section": "Tests"}
+      ],
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "cpp/include/paddleocr_c_api.h",
+          "glob": true
+        }
+      ]
+    }
+  }
+}

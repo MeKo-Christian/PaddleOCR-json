@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #ifdef _WIN32
-#include <include/dirent.h>
+#include "dirent_win.h"
 #include <direct.h>
 // Path separator for different platforms
 #define SEP '\\'
@@ -24,7 +24,7 @@
 #define SEP '/'
 #endif
 
-#include <include/utility.h>
+#include "utility.h"
 #include <iostream>
 #include <ostream>
 #include <vector>

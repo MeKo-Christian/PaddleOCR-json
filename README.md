@@ -72,6 +72,29 @@ PaddleOCR-json.exe -image_path="test.jpg"
 
 ### 3. API Usage
 
+#### Linux Quick Start
+
+This project uses `just` as a command runner. To build and run the project on Linux, follow these steps:
+
+1.  **Install `just` and dependencies:**
+
+    ```bash
+    just setup
+    ```
+
+2.  **Build the project:**
+
+    ```bash
+    just build
+    ```
+
+3.  **Run the executable:**
+
+    ```bash
+    just run --image_path="test.jpg"
+    ```
+
+
 #### Python API
 
 ```python

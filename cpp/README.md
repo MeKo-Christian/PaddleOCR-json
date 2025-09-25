@@ -53,6 +53,8 @@ PaddleOCR-json
 
 ## 2. Build Project
 
+> **Note:** This project uses a `justfile` to simplify the build process. For a simpler build experience, please refer to the root [README.md](../../README.md) for instructions on using `just`.
+
 1. After cmake installation, there will be a cmake-gui program in the system, open cmake-gui. Fill in the source code path in the first input box, and the compilation output path in the second input box, see the template below.  
 Then, click the first button in the lower left corner Configure, the first time you click it will pop up a prompt box for Visual Studio configuration, select your Visual Studio version (2019, 2022 both ok), target platform select x64. Then click the finish button to start automatic configuration.
 

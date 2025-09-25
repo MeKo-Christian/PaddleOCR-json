@@ -5,11 +5,13 @@
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 cd "$SCRIPT_DIR/.."
+SOURCE_DIR="$SCRIPT_DIR/../.source"
 
 # Configuration
 TARGET_ARCH="${1:-aarch64}"  # Default to ARM64
 BUILD_TYPE="Release"
-OUTPUT_DIR="$SCRIPT_DIR/../build-$TARGET_ARCH"
+# Place outputs under repo root ./build/<arch>
+OUTPUT_DIR="$SCRIPT_DIR/../../build/$TARGET_ARCH"
 
 echo "=== PaddleOCR-json Cross-Compilation ==="
 echo "Target architecture: $TARGET_ARCH"
@@ -55,9 +57,23 @@ export STRIP="${TOOLCHAIN_PREFIX}strip"
 export AR="${TOOLCHAIN_PREFIX}ar"
 export RANLIB="${TOOLCHAIN_PREFIX}ranlib"
 
-# Build OpenCV for target architecture
+# Resolve absolute tool paths for CMake
+AR_BIN="$(command -v "$AR")"
+RANLIB_BIN="$(command -v "$RANLIB")"
+STRIP_BIN="$(command -v "$STRIP")"
+
+# Prefer externally provided OpenCV for target arch if available
+if [ -n "$OPENCV_AARCH_DIR" ] && [ -f "$OPENCV_AARCH_DIR/lib/cmake/opencv4/OpenCVConfig.cmake" ]; then
+    echo "Using external OpenCV at $OPENCV_AARCH_DIR"
+    OPENCV_INSTALL_DIR="$OPENCV_AARCH_DIR"
+    OPENCV_CONFIG_CMAKE="$OPENCV_INSTALL_DIR/lib/cmake/opencv4/OpenCVConfig.cmake"
+fi
+
+# Build OpenCV for target architecture (minimal feature set to ease cross build)
 OPENCV_BUILD_DIR="$OUTPUT_DIR/opencv-build"
-if [ ! -d "$OPENCV_BUILD_DIR" ]; then
+OPENCV_INSTALL_DIR="$OUTPUT_DIR/opencv-install"
+OPENCV_CONFIG_CMAKE="$OPENCV_INSTALL_DIR/lib/cmake/opencv4/OpenCVConfig.cmake"
+if [ ! -f "$OPENCV_CONFIG_CMAKE" ]; then
     echo "Building OpenCV for $TARGET_ARCH..."
 
     # Download OpenCV if not exists
@@ -67,19 +83,23 @@ if [ ! -d "$OPENCV_BUILD_DIR" ]; then
         tar -xzf opencv-$OPENCV_VERSION.tar.gz
     fi
 
+    # Clean any previous build directory to avoid generator mismatches
+    rm -rf "$OPENCV_BUILD_DIR"
     mkdir -p "$OPENCV_BUILD_DIR"
     cd "$OPENCV_BUILD_DIR"
 
-    cmake "../opencv-$OPENCV_VERSION" \
-        -DCMAKE_INSTALL_PREFIX="$OUTPUT_DIR/opencv-install" \
+    GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
+    cmake $GEN "../opencv-$OPENCV_VERSION" \
+        -DCMAKE_INSTALL_PREFIX="$OPENCV_INSTALL_DIR" \
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
         -DCMAKE_SYSTEM_NAME="Linux" \
         -DCMAKE_SYSTEM_PROCESSOR="$TARGET_ARCH" \
         -DCMAKE_C_COMPILER="$CC" \
         -DCMAKE_CXX_COMPILER="$CXX" \
-        -DCMAKE_STRIP="$STRIP" \
-        -DCMAKE_AR="$AR" \
-        -DCMAKE_RANLIB="$RANLIB" \
+        -DCMAKE_ASM_COMPILER="$CC" \
+        -DCMAKE_STRIP="$STRIP_BIN" \
+        -DCMAKE_AR="$AR_BIN" \
+        -DCMAKE_RANLIB="$RANLIB_BIN" \
         -DBUILD_LIST=core,imgcodecs,imgproc \
         -DBUILD_SHARED_LIBS=ON \
         -DBUILD_opencv_world=OFF \
@@ -87,10 +107,10 @@ if [ ! -d "$OPENCV_BUILD_DIR" ]; then
         -DWITH_ZLIB=ON \
         -DWITH_JPEG=ON \
         -DWITH_PNG=ON \
-        -DWITH_TIFF=ON \
-        -DWITH_OPENJPEG=ON \
-        -DWITH_JASPER=ON \
-        -DWITH_WEBP=ON \
+        -DWITH_TIFF=OFF \
+        -DWITH_OPENJPEG=OFF \
+        -DWITH_JASPER=OFF \
+        -DWITH_WEBP=OFF \
         -DBUILD_PERF_TESTS=OFF \
         -DBUILD_TESTS=OFF \
         -DBUILD_DOCS=OFF \
@@ -98,32 +118,38 @@ if [ ! -d "$OPENCV_BUILD_DIR" ]; then
         -DBUILD_opencv_python2=OFF \
         -DBUILD_opencv_python3=OFF
 
-    make -j$(nproc)
-    make install
+    cmake --build . -- -j$(nproc)
+    cmake --install .
     cd ..
 fi
 
 # Build PaddleOCR-json
 echo "Building PaddleOCR-json for $TARGET_ARCH..."
-PADDLE_LIB="$(pwd)/$(ls -d .source/*paddle_inference*/ | head -n1)"
+PADDLE_LIB="$(ls -d "$SOURCE_DIR"/*paddle_inference*/ 2>/dev/null | head -n1)"
+if [ -z "$PADDLE_LIB" ]; then
+    echo "ERROR: Paddle inference directory not found in $SOURCE_DIR"
+    exit 1
+fi
 
-cmake -S .. -B "build-$TARGET_ARCH" \
+GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
+cmake $GEN -S "$SCRIPT_DIR/.." -B "$OUTPUT_DIR" \
     -DENABLE_CROSS_COMPILE=ON \
     -DCROSS_COMPILE_PREFIX="$TOOLCHAIN_PREFIX" \
     -DPADDLE_LIB="$PADDLE_LIB" \
-    -DOPENCV_DIR="$OUTPUT_DIR/opencv-install" \
+    -DOPENCV_DIR="$OPENCV_INSTALL_DIR" \
+    -DOpenCV_DIR="$OPENCV_INSTALL_DIR/lib/cmake/opencv4" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DWITH_GPU=OFF \
     -DCMAKE_SYSTEM_NAME="Linux" \
     -DCMAKE_SYSTEM_PROCESSOR="$TARGET_ARCH"
 
-cmake --build "build-$TARGET_ARCH" --config "$BUILD_TYPE"
+cmake --build "$OUTPUT_DIR" --config "$BUILD_TYPE"
 
 echo "=== Cross-Compilation Complete ==="
-echo "Binary location: $OUTPUT_DIR/build-$TARGET_ARCH/bin/PaddleOCR-json"
+echo "Binary location: $OUTPUT_DIR/bin/PaddleOCR-json"
 
 # Strip binary to reduce size
-if [ -f "$OUTPUT_DIR/build-$TARGET_ARCH/bin/PaddleOCR-json" ]; then
-    "$STRIP" "$OUTPUT_DIR/build-$TARGET_ARCH/bin/PaddleOCR-json"
-    echo "Stripped binary size: $(stat -c%s "$OUTPUT_DIR/build-$TARGET_ARCH/bin/PaddleOCR-json") bytes"
+if [ -f "$OUTPUT_DIR/bin/PaddleOCR-json" ]; then
+    "$STRIP" "$OUTPUT_DIR/bin/PaddleOCR-json"
+    echo "Stripped binary size: $(stat -c%s "$OUTPUT_DIR/bin/PaddleOCR-json") bytes"
 fi

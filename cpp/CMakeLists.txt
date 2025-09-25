@@ -181,7 +181,7 @@ else()
     # Cannot compile with `-g -o3` on Linux
     # https://github.com/PaddlePaddle/PaddleOCR/issues/4654#issuecomment-977398981
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -o3 ${FLAG_OPENMP} -std=c++11")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FLAG_OPENMP} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FLAG_OPENMP} -std=c++17")
     set(CMAKE_STATIC_LIBRARY_PREFIX "")
     message(STATUS "cmake cxx flags:" ${CMAKE_CXX_FLAGS})
 endif()
@@ -342,12 +342,19 @@ endif()
 # so we can directly use OpenCV_LIBS here
 set(DEPS ${DEPS} ${OpenCV_LIBS})
 
-include(FetchContent)
-include(external-cmake/auto-log.cmake)
-include_directories(${FETCHCONTENT_BASE_DIR}/extern_autolog-src)
+option(USE_AUTOLOG "Enable AutoLog dependency (downloads during configure)" OFF)
+if(USE_AUTOLOG)
+    include(FetchContent)
+    include(external-cmake/auto-log.cmake)
+    include_directories(${FETCHCONTENT_BASE_DIR}/extern_autolog-src)
+else()
+    message(STATUS "USE_AUTOLOG=OFF: using stub AutoLogger (no network)")
+endif()
 
+include_directories(include)
 AUX_SOURCE_DIRECTORY(./src SRCS)
 add_executable(${DEMO_NAME} ${SRCS})
+target_include_directories(${DEMO_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(${DEMO_NAME} ${DEPS})
 
 
@@ -359,8 +366,8 @@ if(ENABLE_C_API)
     )
 
     add_library(paddleocr_c SHARED ${C_API_SOURCES})
-    target_link_libraries(paddleocr_c ${DEPS})
-    target_include_directories(paddleocr_c PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(paddleocr_c PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(paddleocr_c ${DEPS})
 
     # Install C API library and headers
     install(TARGETS paddleocr_c

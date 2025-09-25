@@ -1,0 +1,196 @@
+name: CI Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: standard
+            description: "Standard shared library build"
+          - target: static
+            description: "Static linked binary"
+          - target: musl
+            description: "Musl static binary"
+          - target: cross-aarch64
+            description: "ARM64 cross-compiled binary"
+            arch: aarch64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          cpp/.source
+          ~/.cache/pip
+        key: paddleocr-deps-${{ runner.os }}-${{ hashFiles('justfile') }}
+        restore-keys: |
+          paddleocr-deps-${{ runner.os }}-
+
+    - name: Install Just
+      uses: extractions/setup-just@v2
+
+    - name: Setup system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential wget tar zip unzip git \
+          gcc g++ cmake make ninja-build \
+          libgomp1 pkg-config \
+          gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+          gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+          musl-tools
+
+    - name: Setup musl toolchain (for musl builds)
+      if: matrix.target == 'musl'
+      run: just setup-musl-deps
+
+    - name: Download dependencies
+      run: just download
+
+    - name: Build ${{ matrix.target }}
+      run: |
+        case "${{ matrix.target }}" in
+          "standard")
+            just build
+            ;;
+          "static")
+            just build-static
+            ;;
+          "musl")
+            just build-musl
+            ;;
+          "cross-aarch64")
+            just build-cross aarch64
+            ;;
+        esac
+
+    - name: Run tests
+      if: matrix.target == 'standard'
+      run: just test
+
+    - name: Check build artifacts
+      run: |
+        echo "=== Build Status ==="
+        just status
+        echo ""
+        echo "=== Binary Information ==="
+        if [ "${{ matrix.target }}" = "cross-aarch64" ]; then
+          BUILD_DIR="build/aarch64"
+        else
+          BUILD_DIR="build/${{ matrix.target }}"
+        fi
+
+        if [ -f "$BUILD_DIR/bin/PaddleOCR-json" ]; then
+          echo "Binary size: $(ls -lh $BUILD_DIR/bin/PaddleOCR-json | awk '{print $5}')"
+          echo "Dependencies:"
+          ldd "$BUILD_DIR/bin/PaddleOCR-json" 2>/dev/null | head -10 || echo "Static binary (no dependencies)"
+        else
+          echo "Binary not found at $BUILD_DIR/bin/PaddleOCR-json"
+          find build -name "PaddleOCR-json" -type f || true
+        fi
+
+    - name: Package artifacts
+      run: |
+        mkdir -p artifacts
+
+        if [ "${{ matrix.target }}" = "cross-aarch64" ]; then
+          BUILD_DIR="build/aarch64"
+          TARGET_NAME="aarch64"
+        else
+          BUILD_DIR="build/${{ matrix.target }}"
+          TARGET_NAME="${{ matrix.target }}"
+        fi
+
+        if [ -f "$BUILD_DIR/bin/PaddleOCR-json" ]; then
+          # Create package directory
+          PKG_DIR="paddleocr-json-$TARGET_NAME"
+          mkdir -p "artifacts/$PKG_DIR"
+
+          # Copy binary
+          cp "$BUILD_DIR/bin/PaddleOCR-json" "artifacts/$PKG_DIR/"
+
+          # Copy shared libraries if they exist
+          if [ -d "$BUILD_DIR/lib" ] && [ "$(ls -A $BUILD_DIR/lib)" ]; then
+            mkdir -p "artifacts/$PKG_DIR/lib"
+            cp -r "$BUILD_DIR/lib/"* "artifacts/$PKG_DIR/lib/"
+          fi
+
+          # Copy models if available
+          if [ -d "cpp/.source/models" ]; then
+            cp -r "cpp/.source/models" "artifacts/$PKG_DIR/"
+          fi
+
+          # Create run script
+          cat > "artifacts/$PKG_DIR/run.sh" << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$LD_LIBRARY_PATH"
+exec "$SCRIPT_DIR/PaddleOCR-json" "$@"
+EOF
+          chmod +x "artifacts/$PKG_DIR/run.sh"
+
+          # Create README
+          cat > "artifacts/$PKG_DIR/README.txt" << EOF
+PaddleOCR-json ${{ matrix.target }} build
+Build target: ${{ matrix.description }}
+$([ "${{ matrix.arch }}" ] && echo "Architecture: ${{ matrix.arch }}" || echo "Architecture: x86_64")
+Built on: $(date -u)
+
+Usage:
+  ./run.sh -image_path="image.jpg"
+  ./PaddleOCR-json -models_path="./models" -config_path="./models/config_chinese.txt" -image_path="image.jpg"
+
+For more information, visit: https://github.com/hiroi-sora/PaddleOCR-json
+EOF
+
+          # Create archive
+          cd artifacts
+          tar -czf "$TARGET_NAME.tar.gz" "$PKG_DIR/"
+          zip -r "$TARGET_NAME.zip" "$PKG_DIR/"
+          cd ..
+        else
+          echo "Build failed - binary not found"
+          exit 1
+        fi
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: paddleocr-json-${{ matrix.target == 'cross-aarch64' && 'aarch64' || matrix.target }}
+        path: |
+          artifacts/*.tar.gz
+          artifacts/*.zip
+        retention-days: 7
+
+  # Build status notification job
+  notify:
+    name: Build Status Notification
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Notify build status
+      run: |
+        if [[ "${{ needs.build.result }}" == "success" ]]; then
+          echo "✅ All builds completed successfully"
+        else
+          echo "❌ Some builds failed"
+          exit 1
+        fi

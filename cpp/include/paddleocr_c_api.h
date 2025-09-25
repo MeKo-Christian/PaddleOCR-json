@@ -1,4 +1,4 @@
-# C API Header for PaddleOCR-json
+// C API Header for PaddleOCR-json
 #pragma once
 
 #include <stdint.h>

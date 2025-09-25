@@ -1,10 +1,30 @@
 *.code-workspace
-
-*__pycache__*
-
 .vscode
+*__pycache__*
+*.log
+*.tmp
+.DS_Store
+.env
 
-*.zip
-*.rar
-*.7z
+# Root build artifacts
+/build/
+/dist/
+
+# C++ local builds
+/cpp/build/
+/cpp/build-*/
+
+# Local dependencies cache (downloaded)
+/cpp/.source/
+
+# Stray downloads placed at repo root (migrated by `just tidy`)
+/models/
+/opencv-release/
+/paddle_inference_manylinux_*/
+/paddle_inference.tgz
+/models_*.zip
+/opencv-release_*.zip
+
+# Test run outputs
+/api/node.js/test/tmp/
 other

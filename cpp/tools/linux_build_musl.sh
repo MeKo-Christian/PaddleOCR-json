@@ -5,12 +5,14 @@
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 cd "$SCRIPT_DIR/.."
+SOURCE_DIR="$SCRIPT_DIR/../.source"
 
 # Configuration
 MUSL_VERSION="1.2.3"
 OPENCV_VERSION="4.10.0"
 BUILD_TYPE="Release"
-OUTPUT_DIR="$SCRIPT_DIR/../build-musl"
+# Place outputs under repo root ./build/musl
+OUTPUT_DIR="$SCRIPT_DIR/../../build/musl"
 
 echo "=== PaddleOCR-json Musl Static Build ==="
 echo "Build type: $BUILD_TYPE"
@@ -20,31 +22,50 @@ echo "Output dir: $OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 cd "$OUTPUT_DIR"
 
-# Download and build musl toolchain if not exists
 MUSL_DIR="$OUTPUT_DIR/musl-$MUSL_VERSION"
-if [ ! -d "$MUSL_DIR" ]; then
-    echo "Downloading musl $MUSL_VERSION..."
-    wget -O musl-$MUSL_VERSION.tar.gz https://musl.libc.org/releases/musl-$MUSL_VERSION.tar.gz
-    tar -xzf musl-$MUSL_VERSION.tar.gz
+# Only build a local musl toolchain if a musl C++ compiler is not available
+if ! command -v x86_64-linux-musl-g++ >/dev/null 2>&1; then
+  if [ ! -d "$MUSL_DIR" ]; then
+      echo "Downloading musl $MUSL_VERSION..."
+      wget -O musl-$MUSL_VERSION.tar.gz https://musl.libc.org/releases/musl-$MUSL_VERSION.tar.gz
+      tar -xzf musl-$MUSL_VERSION.tar.gz
 
-    echo "Building musl toolchain..."
-    cd "musl-$MUSL_VERSION"
-    ./configure --prefix="$MUSL_DIR/install" --disable-shared
-    make -j$(nproc)
-    make install
-    cd ..
+      echo "Building musl toolchain..."
+      cd "musl-$MUSL_VERSION"
+      ./configure --prefix="$MUSL_DIR/install" --disable-shared
+      make -j$(nproc)
+      make install
+      cd ..
+  fi
 fi
 
 # Set musl toolchain
-export CC="$MUSL_DIR/install/bin/musl-gcc"
-export CXX="$MUSL_DIR/install/bin/musl-gcc"
+# Prefer system-provided cross C++ compiler if available (e.g., x86_64-linux-musl-g++)
+if command -v x86_64-linux-musl-g++ >/dev/null 2>&1; then
+  export CC="x86_64-linux-musl-gcc"
+  export CXX="x86_64-linux-musl-g++"
+elif [ -x "$MUSL_DIR/install/bin/musl-gcc" ]; then
+  export CC="$MUSL_DIR/install/bin/musl-gcc"
+  # musl-tools often lacks a dedicated g++; musl-gcc may not handle C++ standard headers
+  # If musl-g++ exists next to musl-gcc, prefer it
+  if [ -x "${MUSL_DIR}/install/bin/musl-g++" ]; then
+    export CXX="${MUSL_DIR}/install/bin/musl-g++"
+  else
+    export CXX="$MUSL_DIR/install/bin/musl-gcc"
+  fi
+else
+  echo "ERROR: No musl C/C++ compiler found. Install a cross toolchain (e.g., x86_64-linux-musl-g++)."
+  exit 1
+fi
 export CFLAGS="-static -Os"
 export CXXFLAGS="-static -Os"
 export LDFLAGS="-static"
 
 # Build OpenCV statically with musl
 OPENCV_BUILD_DIR="$OUTPUT_DIR/opencv-build"
-if [ ! -d "$OPENCV_BUILD_DIR" ]; then
+OPENCV_INSTALL_DIR="$OUTPUT_DIR/opencv-install"
+OPENCV_CONFIG_CMAKE="$OPENCV_INSTALL_DIR/lib/cmake/opencv4/OpenCVConfig.cmake"
+if [ ! -f "$OPENCV_CONFIG_CMAKE" ]; then
     echo "Building OpenCV with musl..."
 
     # Download OpenCV if not exists
@@ -56,8 +77,9 @@ if [ ! -d "$OPENCV_BUILD_DIR" ]; then
     mkdir -p "$OPENCV_BUILD_DIR"
     cd "$OPENCV_BUILD_DIR"
 
-    cmake "../opencv-$OPENCV_VERSION" \
-        -DCMAKE_INSTALL_PREFIX="$OUTPUT_DIR/opencv-install" \
+    GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
+    cmake $GEN "../opencv-$OPENCV_VERSION" \
+        -DCMAKE_INSTALL_PREFIX="$OPENCV_INSTALL_DIR" \
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_LIST=core,imgcodecs,imgproc \
@@ -66,10 +88,11 @@ if [ ! -d "$OPENCV_BUILD_DIR" ]; then
         -DWITH_ZLIB=ON \
         -DWITH_JPEG=ON \
         -DWITH_PNG=ON \
-        -DWITH_TIFF=ON \
-        -DWITH_OPENJPEG=ON \
-        -DWITH_JASPER=ON \
-        -DWITH_WEBP=ON \
+        -DWITH_TIFF=OFF \
+        -DWITH_OPENEXR=OFF \
+        -DWITH_OPENJPEG=OFF \
+        -DWITH_JASPER=OFF \
+        -DWITH_WEBP=OFF \
         -DBUILD_PERF_TESTS=OFF \
         -DBUILD_TESTS=OFF \
         -DBUILD_DOCS=OFF \
@@ -79,18 +102,25 @@ if [ ! -d "$OPENCV_BUILD_DIR" ]; then
         -DCMAKE_C_COMPILER="$CC" \
         -DCMAKE_CXX_COMPILER="$CXX"
 
-    make -j$(nproc)
-    make install
+    cmake --build . -- -j$(nproc)
+    cmake --install .
     cd ..
 fi
 
 # Build PaddleOCR-json
 echo "Building PaddleOCR-json with musl..."
-PADDLE_LIB="$(pwd)/$(ls -d .source/*paddle_inference*/ | head -n1)"
+# Resolve Paddle inference path from project .source cache
+PADDLE_LIB="$(ls -d "$SOURCE_DIR"/*paddle_inference*/ 2>/dev/null | head -n1)"
+if [ -z "$PADDLE_LIB" ]; then
+    echo "ERROR: Paddle inference directory not found in $SOURCE_DIR"
+    exit 1
+fi
 
-cmake -S .. -B build-musl \
+GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
+cmake $GEN -S .. -B "$OUTPUT_DIR" \
     -DPADDLE_LIB="$PADDLE_LIB" \
-    -DOPENCV_DIR="$OUTPUT_DIR/opencv-install" \
+    -DOPENCV_DIR="$OPENCV_INSTALL_DIR" \
+    -DOpenCV_DIR="$OPENCV_INSTALL_DIR/lib/cmake/opencv4" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DWITH_STATIC_LIB=ON \
     -DWITH_MKL=OFF \
@@ -101,12 +131,12 @@ cmake -S .. -B build-musl \
     -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
     -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
 
-cmake --build build-musl --config "$BUILD_TYPE"
+cmake --build "$OUTPUT_DIR" --config "$BUILD_TYPE"
 
 echo "=== Build Complete ==="
-echo "Static binary location: $OUTPUT_DIR/build-musl/bin/PaddleOCR-json"
-echo "To test: $OUTPUT_DIR/build-musl/bin/PaddleOCR-json --help"
+echo "Static binary location: $OUTPUT_DIR/bin/PaddleOCR-json"
+echo "To test: $OUTPUT_DIR/bin/PaddleOCR-json --help"
 
 # Verify it's statically linked
 echo "=== Verifying static linking ==="
-ldd "$OUTPUT_DIR/build-musl/bin/PaddleOCR-json" || echo "No dynamic dependencies - fully static!"
+ldd "$OUTPUT_DIR/bin/PaddleOCR-json" || echo "No dynamic dependencies - fully static!"
