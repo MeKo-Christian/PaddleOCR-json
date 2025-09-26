@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: standard
+            description: "Standard shared library build"
+          - target: static
+            description: "Static linked binary"
+          - target: musl
+            description: "Musl static binary"
+          - target: cross-aarch64
+            description: "ARM64 cross-compiled binary"
+            arch: aarch64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          cpp/.source
+          ~/.cache/pip
+        key: paddleocr-deps-${{ runner.os }}-${{ hashFiles('justfile') }}
+        restore-keys: |
+          paddleocr-deps-${{ runner.os }}-
+
+    - name: Install Just
+      uses: extractions/setup-just@v2
+
+    - name: Setup system dependencies
+      run: just setup
+
+    - name: Setup musl toolchain (for musl builds)
+      if: matrix.target == 'musl'
+      run: just setup-musl-deps
+
+    - name: Download dependencies
+      run: just download
+
+    - name: Build ${{ matrix.target }}
+      run: |
+        case "${{ matrix.target }}" in
+          "standard")
+            just build
+            ;;
+          "static")
+            just build-static
+            ;;
+          "musl")
+            just build-musl
+            ;;
+          "cross-aarch64")
+            just build-cross aarch64
+            ;;
+        esac
+
+    - name: Run tests
+      if: matrix.target == 'standard'
+      run: just test
+
+    - name: Package artifacts
+      run: |
+        TARGET_NAME="${{ matrix.target == 'cross-aarch64' && 'aarch64' || matrix.target }}"
+        BUILD_DIR="${{ matrix.target == 'cross-aarch64' && 'build/aarch64' || format('build/{0}', matrix.target) }}"
+
+        if [ ! -f "$BUILD_DIR/bin/PaddleOCR-json" ]; then
+          echo "Build failed - binary not found at $BUILD_DIR/bin/PaddleOCR-json"
+          exit 1
+        fi
+
+        mkdir -p dist/$TARGET_NAME/bin
+        cp "$BUILD_DIR/bin/PaddleOCR-json" "dist/$TARGET_NAME/bin/"
+
+        # Copy shared libraries if they exist
+        if [ -d "$BUILD_DIR/lib" ] && [ "$(ls -A $BUILD_DIR/lib 2>/dev/null)" ]; then
+          cp -r "$BUILD_DIR/lib" "dist/$TARGET_NAME/"
+        fi
+
+        # Copy models if available
+        if [ -d "cpp/.source/models" ]; then
+          cp -r "cpp/.source/models" "dist/$TARGET_NAME/"
+        fi
+
+        # Copy distribution tools (run script, README, etc.)
+        cp cpp/tools/linux_dist_tools/* "dist/$TARGET_NAME/"
+
+        # Create archive
+        cd dist
+        tar -czf "paddleocr-json-$TARGET_NAME-${GITHUB_REF#refs/tags/}.tar.gz" "$TARGET_NAME/"
+
+    - name: Upload artifacts to release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/*.tar.gz
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

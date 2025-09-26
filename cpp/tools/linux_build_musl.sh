@@ -60,9 +60,9 @@ else
   echo "ERROR: No musl C/C++ compiler found. Install a cross toolchain (e.g., x86_64-linux-musl-g++)."
   exit 1
 fi
-export CFLAGS="-static -Os"
-export CXXFLAGS="-static -Os"
-export LDFLAGS="-static"
+export CFLAGS="-Os"
+export CXXFLAGS="-Os"
+export LDFLAGS=""
 
 # Build OpenCV statically with musl
 OPENCV_BUILD_DIR="$OUTPUT_DIR/opencv-build"
@@ -89,6 +89,7 @@ if [ ! -f "$OPENCV_CONFIG_CMAKE" ]; then
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_LIST=core,imgcodecs,imgproc \
         -DBUILD_opencv_world=OFF \
+        -DOPENCV_GENERATE_PKGCONFIG=ON \
         -DBUILD_EXAMPLES=OFF \
         -DBUILD_opencv_apps=OFF \
         -DOPENCV_ENABLE_NONFREE=OFF \
@@ -125,18 +126,23 @@ fi
 
 # Build PaddleOCR-json
 echo "Building PaddleOCR-json with musl..."
-# Resolve Paddle inference path from project .source cache
-PADDLE_LIB="$(ls -d "$SOURCE_DIR"/*paddle_inference*/ 2>/dev/null | head -n1)"
+# Resolve Paddle inference path: prefer PADDLE_MUSL_DIR override
+if [ -n "$PADDLE_MUSL_DIR" ] && [ -d "$PADDLE_MUSL_DIR" ]; then
+    PADDLE_LIB="$PADDLE_MUSL_DIR"
+else
+    PADDLE_LIB="$(ls -d "$SOURCE_DIR"/*paddle_inference*/ 2>/dev/null | head -n1)"
+fi
 if [ -z "$PADDLE_LIB" ]; then
     echo "ERROR: Paddle inference directory not found in $SOURCE_DIR"
     exit 1
 fi
 
 GEN=""; if command -v ninja >/dev/null 2>&1; then GEN="-G Ninja"; fi
+# Ensure pkg-config can locate the musl OpenCV install
+export PKG_CONFIG_PATH="$OPENCV_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
 cmake $GEN -S "$SRC_DIR" -B "$OUTPUT_DIR" \
     -DPADDLE_LIB="$PADDLE_LIB" \
-    -DOPENCV_DIR="$OPENCV_INSTALL_DIR" \
-    -DOpenCV_DIR="$OPENCV_INSTALL_DIR/lib/cmake/opencv4" \
+    -DUSE_OPENCV_PKGCONFIG=ON \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DWITH_STATIC_LIB=ON \
     -DWITH_MKL=OFF \

@@ -1,0 +1,34 @@
+{
+  "file_not_found": {
+    "code": 200,
+    "data": "Image path does not exist. Path: \"/non/existent/path.jpg\""
+  },
+  "path_conversion_error": {
+    "code": 201,
+    "data": "Image path failed to convert to utf-16 wstring. Path: \"/invalid/unicode/path.jpg\""
+  },
+  "file_read_error": {
+    "code": 202,
+    "data": "Image open failed. Path: \"/permission/denied/image.jpg\""
+  },
+  "decode_error": {
+    "code": 203,
+    "data": "Image decode failed. Path: \"/corrupted/image.jpg\""
+  },
+  "base64_decode_error": {
+    "code": 300,
+    "data": "Base64 decode failed."
+  },
+  "base64_format_error": {
+    "code": 301,
+    "data": "Base64 string to image conversion failed."
+  },
+  "ocr_engine_error": {
+    "code": 400,
+    "data": "OCR engine initialization failed."
+  },
+  "model_load_error": {
+    "code": 401,
+    "data": "Model loading failed. Check models path."
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "basic_config": {
+    "det": true,
+    "cls": true,
+    "rec": true,
+    "use_angle_cls": true,
+    "limit_side_len": 960,
+    "det_db_thresh": 0.3,
+    "det_db_box_thresh": 0.6,
+    "det_db_unclip_ratio": 1.5,
+    "cls_thresh": 0.9,
+    "rec_batch_num": 6
+  },
+  "high_accuracy_config": {
+    "det": true,
+    "cls": true,
+    "rec": true,
+    "use_angle_cls": true,
+    "limit_side_len": 1280,
+    "limit_type": "max",
+    "det_db_thresh": 0.2,
+    "det_db_box_thresh": 0.5,
+    "det_db_unclip_ratio": 2.0,
+    "cls_thresh": 0.8,
+    "rec_batch_num": 1,
+    "visualize": false
+  },
+  "fast_config": {
+    "det": true,
+    "cls": false,
+    "rec": true,
+    "use_angle_cls": false,
+    "limit_side_len": 720,
+    "limit_type": "max",
+    "det_db_thresh": 0.4,
+    "det_db_box_thresh": 0.7,
+    "det_db_unclip_ratio": 1.2,
+    "rec_batch_num": 10
+  },
+  "chinese_config": {
+    "det": true,
+    "cls": true,
+    "rec": true,
+    "use_angle_cls": true,
+    "det_model_dir": "models/ch_PP-OCRv4_det_infer",
+    "cls_model_dir": "models/ch_ppocr_mobile_v2.0_cls_infer",
+    "rec_model_dir": "models/ch_PP-OCRv4_rec_infer",
+    "rec_char_dict_path": "models/ppocr_keys_v1.txt"
+  },
+  "english_config": {
+    "det": true,
+    "cls": true,
+    "rec": true,
+    "use_angle_cls": true,
+    "det_model_dir": "models/en_PP-OCRv3_det_infer",
+    "cls_model_dir": "models/ch_ppocr_mobile_v2.0_cls_infer",
+    "rec_model_dir": "models/en_PP-OCRv4_rec_infer",
+    "rec_char_dict_path": "models/en_dict.txt"
+  },
+  "performance_config": {
+    "use_gpu": false,
+    "use_tensorrt": false,
+    "cpu_threads": 10,
+    "cpu_mem": 2000,
+    "enable_mkldnn": true,
+    "precision": "fp32",
+    "benchmark": true
+  },
+  "gpu_config": {
+    "use_gpu": true,
+    "gpu_id": 0,
+    "gpu_mem": 4000,
+    "use_tensorrt": true,
+    "precision": "fp16",
+    "benchmark": true
+  }
+}

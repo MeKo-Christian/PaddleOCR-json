@@ -60,6 +60,7 @@ option(ENABLE_JSON_IMAGE_PATH   "Enable json command image_path. Default on." ON
 
 # CMake feature-related parameters
 option(INSTALL_WITH_TOOLS       "Include tool files during CMake installation. Default on."      ON)
+option(BUILD_TESTS              "Build unit tests. Default off."                                  OFF)
 
 
 # compiler flags
@@ -127,6 +128,8 @@ message(STATUS "CMake Features:")
 message(STATUS "    INSTALL_WITH_TOOLS: ${INSTALL_WITH_TOOLS}")
 
 
+option(USE_OPENCV_PKGCONFIG "Use pkg-config to find OpenCV (musl builds)" OFF)
+
 # Load dependencies
 
 # OpenCV
@@ -140,16 +143,25 @@ set(OPENCV_COMPONENTS_TO_LOAD
     imgcodecs
 )
 
-# Provided by CMake parameter (-DOPENCV_DIR)
-if(DEFINED OPENCV_DIR AND NOT "${OPENCV_DIR}" STREQUAL "")
-    message(STATUS "Setting OPENCV_DIR: ${OPENCV_DIR}")
-    find_package(OpenCV REQUIRED PATHS ${OPENCV_DIR} COMPONENTS ${OPENCV_COMPONENTS_TO_LOAD} NO_DEFAULT_PATH)
-    set(CUSTOM_OPENCV_DIR ${OPENCV_DIR})
-# No OpenCV path provided, let CMake find it itself
+if(USE_OPENCV_PKGCONFIG)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(OPENCV REQUIRED opencv4)
+    message(STATUS "Using OpenCV via pkg-config: include=${OPENCV_INCLUDE_DIRS}")
+    include_directories(${OPENCV_INCLUDE_DIRS})
+    link_directories(${OPENCV_LIBRARY_DIRS})
+    set(OpenCV_LIBS ${OPENCV_LIBRARIES})
 else()
-    find_package(OpenCV REQUIRED COMPONENTS ${OPENCV_COMPONENTS_TO_LOAD})
+    # Provided by CMake parameter (-DOPENCV_DIR)
+    if(DEFINED OPENCV_DIR AND NOT "${OPENCV_DIR}" STREQUAL "")
+        message(STATUS "Setting OPENCV_DIR: ${OPENCV_DIR}")
+        find_package(OpenCV REQUIRED PATHS ${OPENCV_DIR} COMPONENTS ${OPENCV_COMPONENTS_TO_LOAD} NO_DEFAULT_PATH)
+        set(CUSTOM_OPENCV_DIR ${OPENCV_DIR})
+    # No OpenCV path provided, let CMake find it itself
+    else()
+        find_package(OpenCV REQUIRED COMPONENTS ${OPENCV_COMPONENTS_TO_LOAD})
+    endif()
+    include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 # PaddleOCR
@@ -269,7 +281,15 @@ if(WITH_MKL)
     if (WIN32)
         set(MATH_LIB ${PADDLE_LIB}/third_party/install/openblas/lib/openblas${CMAKE_STATIC_LIBRARY_SUFFIX})
     else ()
-        set(MATH_LIB ${PADDLE_LIB}/third_party/install/openblas/lib/libopenblas${CMAKE_STATIC_LIBRARY_SUFFIX})
+        # Prefer static lib if available; otherwise fall back to shared
+        if (EXISTS "${PADDLE_LIB}/third_party/install/openblas/lib/libopenblas${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            set(MATH_LIB ${PADDLE_LIB}/third_party/install/openblas/lib/libopenblas${CMAKE_STATIC_LIBRARY_SUFFIX})
+        elseif (EXISTS "${PADDLE_LIB}/third_party/install/openblas/lib/libopenblas${CMAKE_SHARED_LIBRARY_SUFFIX}")
+            set(MATH_LIB ${PADDLE_LIB}/third_party/install/openblas/lib/libopenblas${CMAKE_SHARED_LIBRARY_SUFFIX})
+        else()
+            # Last-resort: rely on system resolution if present
+            set(MATH_LIB openblas)
+        endif()
     endif ()
 endif()
 
@@ -538,4 +558,9 @@ else()
             DESTINATION "."
         )
     endif()
+endif()
+
+# Add tests if enabled
+if(BUILD_TESTS)
+    add_subdirectory(tests)
 endif()

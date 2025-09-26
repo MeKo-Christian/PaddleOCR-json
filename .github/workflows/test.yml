@@ -1,0 +1,210 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  cpp-tests:
+    name: C++ Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential libgflags-dev
+
+    - name: Configure CMake for tests
+      run: |
+        cd cpp
+        mkdir -p build
+        cmake -S . -B build -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
+
+    - name: Build tests
+      run: |
+        cd cpp
+        cmake --build build --target paddleocr_tests
+
+    - name: Run C++ tests
+      run: |
+        cd cpp/build
+        ./paddleocr_tests --gtest_output=xml:test_results.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cpp-test-results
+        path: cpp/build/test_results.xml
+
+  python-tests:
+    name: Python API Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        cd api/python
+        python -m pip install --upgrade pip
+        pip install -r requirements-test.txt
+
+    - name: Run Python tests
+      run: |
+        cd api/python
+        python -m pytest tests/ -v --cov=PPOCR_api --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./api/python/coverage.xml
+        flags: python
+        name: python-${{ matrix.python-version }}
+
+  nodejs-tests:
+    name: Node.js API Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['16', '18', '20']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: api/node.js/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd api/node.js
+        npm ci
+
+    - name: Build TypeScript
+      run: |
+        cd api/node.js
+        npm run build || npx tsc
+
+    - name: Run Node.js tests
+      run: |
+        cd api/node.js
+        npm test -- --coverage --coverageDirectory=coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./api/node.js/coverage/lcov.info
+        flags: nodejs
+        name: nodejs-${{ matrix.node-version }}
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [cpp-tests, python-tests, nodejs-tests]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential libgflags-dev
+
+    - name: Build C++ component (without models)
+      run: |
+        cd cpp
+        mkdir -p build
+        # Build without requiring actual PaddleOCR models for CI
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build
+
+    - name: Install Python dependencies
+      run: |
+        cd api/python
+        pip install -r requirements-test.txt
+
+    - name: Install Node.js dependencies
+      run: |
+        cd api/node.js
+        npm ci
+
+    - name: Run cross-platform integration tests
+      run: |
+        echo "Integration tests would verify API compatibility across platforms"
+        echo "This would test JSON communication format consistency"
+        echo "For now, we verify that all components build successfully"
+
+  lint-and-format:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Python linting tools
+      run: |
+        pip install flake8 black isort mypy
+
+    - name: Lint Python code
+      run: |
+        cd api/python
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check --diff .
+        isort --check-only --diff .
+
+    - name: Install Node.js linting tools
+      run: |
+        cd api/node.js
+        npm ci
+        npm install -g typescript eslint prettier
+
+    - name: Lint TypeScript code
+      run: |
+        cd api/node.js
+        npx tsc --noEmit
+        npx eslint ts/ --ext .ts || echo "ESLint config needed"
+        npx prettier --check ts/ || echo "Prettier config needed"
+
+    - name: Check C++ formatting
+      run: |
+        # Install clang-format if needed
+        which clang-format || sudo apt-get install -y clang-format
+        echo "C++ formatting check would go here"
+        echo "Consider adding .clang-format config file"

@@ -25,6 +25,9 @@ help:
     @echo "  help           - Show this help"
     @echo "  install-just   - Install Just (if not installed)"
     @echo "  check-just     - Check Just installation"
+    @echo "  setup-musl-paddle URL=... - Cache OpenBLAS Paddle Inference for musl"
+    @echo "  docker-build-paddle-musl  - Build musl Paddle Inference image"
+    @echo "  docker-extract-paddle-musl - Extract paddle_inference from image"
 
 # Variables
 CPP_DIR := "cpp"
@@ -98,6 +101,33 @@ check-musl:
         echo "Local cache: Not found at {{CROSS_MUSL_DIR}}/bin"; \
     fi
 
+# Download a musl-friendly Paddle Inference (OpenBLAS). Provide URL or a local tarball path.
+setup-musl-paddle URL="":
+    @echo "Setting up Paddle Inference (OpenBLAS) for musl..."
+    @echo "Destination: {{SOURCE_DIR}}"
+    mkdir -p {{SOURCE_DIR}}
+    if [ -z "{{URL}}" ]; then \
+        echo "Please provide a URL or local path to an OpenBLAS Paddle Inference tarball."; \
+        echo "Example URL (adjust as needed):"; \
+        echo "  https://paddle-inference-lib.bj.bcebos.com/3.0.0-beta1/cxx_c/Linux/CPU/gcc8.2_openblas/paddle_inference.tgz"; \
+        echo "Then run: just setup-musl-paddle URL=..."; \
+        exit 1; \
+    fi
+    if [ -f "{{URL}}" ]; then \
+        echo "Using local file: {{URL}}"; \
+        cp -f "{{URL}}" {{SOURCE_DIR}}/paddle_inference_musl_openblas.tgz; \
+    else \
+        echo "Downloading from: {{URL}}"; \
+        cd {{SOURCE_DIR}} && wget -O paddle_inference_musl_openblas.tgz "{{URL}}"; \
+    fi
+    cd {{SOURCE_DIR}} && tar -xzf paddle_inference_musl_openblas.tgz
+    @# Normalize folder name to a consistent path
+    @if [ -d "{{SOURCE_DIR}}/paddle_inference" ]; then \
+        mv -f "{{SOURCE_DIR}}/paddle_inference" "{{SOURCE_DIR}}/paddle_inference_musl_openblas"; \
+    fi
+    @echo "Done. To use for musl builds:" \
+         "export PADDLE_MUSL_DIR=$(pwd)/{{SOURCE_DIR}}/paddle_inference_musl_openblas"
+
 # Print PATH export to activate local musl toolchain in current shell
 print-musl-env:
     @echo "export PATH={{CROSS_MUSL_DIR}}/bin:\$$PATH"
@@ -112,6 +142,11 @@ run *args:
     @echo "Running PaddleOCR-json..."
     export LD_LIBRARY_PATH={{PADDLE_DIR}}/third_party/install/onednn/lib:$LD_LIBRARY_PATH && \
     {{BUILD_DIR}}/standard/bin/PaddleOCR-json {{args}}
+
+# Run the musl static executable
+run-musl *args:
+    @echo "Running musl PaddleOCR-json..."
+    {{BUILD_DIR}}/musl/bin/PaddleOCR-json {{args}}
 
 # Download required libraries and models
 download:
@@ -263,6 +298,26 @@ docker-build MODE="standard":
     docker build -t paddleocr-json-{{MODE}} \
         --build-arg BUILD_MODE={{MODE}} \
         -f Dockerfile.just .
+
+# Build Paddle Inference (musl) image
+docker-build-paddle-musl TAG="v2.6.0" JOBS="8":
+    @echo "Building musl Paddle Inference Docker image..."
+    docker build \
+        --build-arg PADDLE_TAG={{TAG}} \
+        --build-arg JOBS={{JOBS}} \
+        -f docker/Dockerfile.musl-paddle \
+        -t paddle-musl-inference:{{TAG}} docker
+
+# Extract built paddle_inference from image into project cache
+docker-extract-paddle-musl TAG="v2.6.0":
+    @echo "Extracting paddle_inference (musl) from Docker image..."
+    #!/bin/bash
+    mkdir -p {{SOURCE_DIR}} && \
+    id=$(docker create paddle-musl-inference:{{TAG}} /dev/null) && \
+      docker cp $id:/paddle_inference {{SOURCE_DIR}}/paddle_inference_musl_openblas && \
+      docker rm $id >/dev/null && \
+      echo "Staged to {{SOURCE_DIR}}/paddle_inference_musl_openblas" && \
+      echo "To use: export PADDLE_MUSL_DIR=$(pwd)/{{SOURCE_DIR}}/paddle_inference_musl_openblas"
 
 # Run Docker container
 docker-run: docker

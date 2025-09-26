@@ -1,0 +1,57 @@
+# Minimal, best-effort Dockerfile to build Paddle Inference (CPU, OpenBLAS) on musl
+# Notes:
+# - Uses Alpine (musl) so produced binaries target musl libc
+# - Aims to build the C++ inference library only (no Python)
+# - Building Paddle from source is heavy and may require version-specific tweaks
+# - Expect long build times and adjust JOBS accordingly
+
+ARG PADDLE_TAG=v2.6.0
+ARG JOBS=8
+
+FROM alpine:3.19 AS base
+ARG PADDLE_TAG
+ARG JOBS
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8 \
+    CC=cc \
+    CXX=c++
+
+RUN apk add --no-cache \
+    bash curl wget git ca-certificates \
+    build-base cmake ninja \
+    python3 py3-pip \
+    openblas openblas-dev lapack-dev \
+    protobuf protobuf-dev \
+    zlib zlib-dev \
+    gfortran pkgconfig \
+    patchelf
+
+WORKDIR /opt
+
+# Get Paddle sources (shallow)
+RUN git clone --depth 1 --branch ${PADDLE_TAG} https://github.com/PaddlePaddle/Paddle.git paddle
+
+# Script to attempt an inference-only build; adjust flags as Paddle evolves
+ADD build-paddle-inference.sh /usr/local/bin/build-paddle-inference.sh
+RUN chmod +x /usr/local/bin/build-paddle-inference.sh
+
+# Install Python deps for Paddle codegen (PEP 668: allow break-system-packages)
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
+    && pip install --no-cache-dir pyyaml jinja2
+
+# Filter -Werror from C++ compilation and disable C++20-compat warnings-as-errors
+RUN printf '#!/bin/sh\n# Append overrides at the end so they take precedence\nexec /usr/bin/c++ "$@" -Wno-c++20-compat -Wno-error\n' > /usr/local/bin/c++ \
+ && chmod +x /usr/local/bin/c++
+
+# Provide a minimal execinfo.h shim for musl (backtrace APIs are optional)
+RUN mkdir -p /usr/local/include \
+ && printf '#ifndef EXECINFO_H\n#define EXECINFO_H\n#ifdef __cplusplus\nextern "C" {\n#endif\nstatic inline int backtrace(void **, int n){(void)n;return 0;}\nstatic inline char ** backtrace_symbols(void *const *, int){return 0;}\nstatic inline void backtrace_symbols_fd(void *const *, int, int){}\n#ifdef __cplusplus\n}\n#endif\n#endif\n' > /usr/local/include/execinfo.h
+
+# Build and stage to /out/paddle_inference
+RUN /usr/local/bin/build-paddle-inference.sh ${JOBS}
+
+FROM scratch AS out
+COPY --from=base /out/paddle_inference /paddle_inference
